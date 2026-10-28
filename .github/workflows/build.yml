@@ -79,15 +79,21 @@ jobs:
       - name: Android ayarları (ad, izin, dikey ekran)
         run: bash scripts/android_ayarla.sh
       - run: flutter pub get
-      - name: APK derle
+      - name: APK derle (tüm telefonlar)
         run: flutter build apk --release
-      - name: APK'yı yeniden adlandır
-        run: cp build/app/outputs/flutter-apk/app-release.apk kibrit-ulkesi.apk
+      - run: cp build/app/outputs/flutter-apk/app-release.apk kibrit-ulkesi.apk
+      - name: Küçük APK derle (çoğu yeni telefon, arm64)
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64
+      - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk kibrit-ulkesi-kucuk.apk
       - name: Sürüm olarak yayınla
         uses: softprops/action-gh-release@v2
         with:
           tag_name: surum-${{ github.run_number }}
           name: Kibrit Ülkesi ${{ github.run_number }}
-          body: Telefona indirip kurmak için kibrit-ulkesi.apk dosyasına dokun.
-          files: kibrit-ulkesi.apk
+          body: |
+            kibrit-ulkesi-kucuk.apk → çoğu telefon için (daha küçük, hızlı iner)
+            kibrit-ulkesi.apk → küçük olan kurulmazsa bunu dene
+          files: |
+            kibrit-ulkesi-kucuk.apk
+            kibrit-ulkesi.apk
           make_latest: true
