@@ -1,0 +1,21 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+*.iml
+.idea/
+.vscode/
+.DS_Store
+
+# Platform klasörleri derleme sırasında otomatik oluşturulur
+android/
+ios/
+web/
+linux/
+macos/
+windows/
