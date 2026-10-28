@@ -31,7 +31,21 @@ jobs:
         run: flutter create . --project-name kibrit_ulke --org com.acelik --platforms android,ios,web
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - run: flutter test
+      - name: Testleri çalıştır
+        run: |
+          set -o pipefail
+          flutter test --reporter expanded 2>&1 | tee test-kaydi.txt
+      - name: Test kaydını test-kaydi dalına koy
+        if: always()
+        run: |
+          mkdir -p kayit && cp test-kaydi.txt kayit/ 2>/dev/null || echo "kayıt yok" > kayit/test-kaydi.txt
+          cd kayit
+          git init -q -b test-kaydi
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -qm "Test kaydı ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" test-kaydi
 
   web:
     name: Web sürümü (GitHub Pages)
