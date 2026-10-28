@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../game/controller.dart';
@@ -76,6 +77,8 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  // Sürüklemenin ilk karesi de seçilsin.
+                  dragStartBehavior: DragStartBehavior.down,
                   onTapUp: (d) {
                     final i = _cellAt(d.localPosition, size);
                     if (i != null) c.tapCell(i);

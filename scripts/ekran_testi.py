@@ -54,21 +54,16 @@ with sync_playwright() as p:
             shot(page, f"3_atis_{tur}")
             # Defterde geçerli bir boş kareye dokun: insan oyuncunun ülkesi
             # alttadır; ülkenin hemen üstündeki kareyi dene.
-            board = page.evaluate(
-                "() => { const v = document.querySelector('flutter-view, flt-glass-pane');"
-                " const r = v.getBoundingClientRect(); return [r.width, r.height]; }")
-            w, h = board
-            # Defter yaklaşık x: 22..w-8, y: 90..h-170 arası; 18x24 kare.
-            left, right, top, bottom = 22, w - 8, 92, h - 175
+            # 412x892 ekranda defter: x 23..403, y 160..666 (18x24 kare).
+            left, right, top, bottom = 23, 403, 160, 666
             cw = (right - left) / 18
             chh = (bottom - top) / 24
-            ccw = min(cw, chh * 18 / 24 * 24 / 18)
-            # Ülke merkezi (9, 18); üstündeki boş satır y=15.
+            # Ülkenin üst satırı y=16; hemen üstündeki boş satır y=15.
             for k in range(6):
                 x = left + (7 + k % 5 + 0.5) * cw
                 y = top + (15 - k // 5 + 0.5) * chh
-                page.mouse.click(x, y)
-                time.sleep(0.25)
+                page.touchscreen.tap(x, y)
+                time.sleep(0.3)
             shot(page, f"4_secim_{tur}")
             try:
                 page.get_by_role("button", name="Onayla").first.click(timeout=2000)

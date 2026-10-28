@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kibrit_ulke/game/controller.dart';
 import 'package:kibrit_ulke/game/models.dart';
+import 'package:kibrit_ulke/ui/board_painter.dart';
 import 'package:kibrit_ulke/ui/game_screen.dart';
 import 'package:kibrit_ulke/ui/menu_screen.dart';
 
@@ -56,10 +57,49 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.textContaining('Onayla'), findsOneWidget);
 
-        // Deftere dokun: alttaki ülkenin hemen üstündeki boş kare.
-        final board = find.byType(CustomPaint).last;
+        // Deftere dokun: senin ülkenin hemen üstündeki boş kare seçilmeli.
+        final board = find.byWidgetPredicate(
+            (w) => w is CustomPaint && w.painter is BoardPainter);
         expect(board, findsOneWidget);
+        final painter =
+            tester.widget<CustomPaint>(board).painter! as BoardPainter;
+        final b = painter.board;
+        final cap = painter.players[0].capital;
+        final rect = tester.getRect(board);
+        final cw = rect.width / b.w;
+        final ch = rect.height / b.h;
+        final cx = b.xOf(cap);
+        final cy = b.yOf(cap) - 3; // ülkenin bir üst satırı
+        expect(b.cells[b.idx(cx, cy)], -1);
+        await tester.tapAt(Offset(
+            rect.left + (cx + 0.5) * cw, rect.top + (cy + 0.5) * ch));
         await tester.pump(const Duration(milliseconds: 100));
+        expect(tester.takeException(), isNull);
+        expect(find.textContaining('Onayla 1/'), findsOneWidget,
+            reason: 'deftere dokununca kare seçilmeli');
+
+        // Onayla → kare ülkeye eklenmiş olmalı.
+        final onayla = find.textContaining('Onayla 1/');
+        final need = int.parse(
+            tester.widget<Text>(onayla).data!.split('/').last);
+        if (need > 1) {
+          // Kalan kareleri sürükleyerek seç (aynı satırda sağa doğru).
+          final start = Offset(
+              rect.left + (cx + 0.5) * cw, rect.top + (cy + 0.5) * ch);
+          final gesture = await tester.startGesture(
+              start + Offset(cw, 0));
+          for (var k = 1; k <= need + 2; k++) {
+            await gesture.moveTo(start + Offset(cw * k, 0));
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+          await gesture.up();
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(find.textContaining('Onayla $need/$need'), findsOneWidget,
+            reason: 'sürükleyerek seçim çalışmalı');
+        await tester.tap(find.textContaining('Onayla'));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(b.cells[b.idx(cx, cy)], 0, reason: 'kare ülkeye eklenmeli');
         expect(tester.takeException(), isNull);
 
         // Ekranı kapat; bekleyen zamanlayıcılar sorun çıkarmasın.
