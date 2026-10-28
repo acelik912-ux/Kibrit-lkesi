@@ -95,12 +95,19 @@ void main() {
           await gesture.up();
           await tester.pump(const Duration(milliseconds: 100));
         }
+        final dynamic st = tester.state(find.byType(GameScreen));
+        final GameController gc = st.controller;
+        final diag = 'moves=${st.debugMoves} drags=${st.debugDrags} '
+            'sel=${gc.selection.map((i) => '(${b.xOf(i)},${b.yOf(i)})').join()} '
+            'cap=($cx,${b.yOf(cap)}) phase=${gc.phase} need=${gc.need} '
+            'validNext=${gc.valid.contains(b.idx(cx + 1, cy))} '
+            'cell=${cw.toStringAsFixed(1)}x${ch.toStringAsFixed(1)} rect=$rect';
         final labels = tester
             .widgetList<Text>(find.textContaining('Onayla'))
             .map((t) => t.data)
             .join(' | ');
         expect(find.text('Onayla $need/$need'), findsOneWidget,
-            reason: 'sürükleyerek seçim çalışmalı, ekranda: $labels');
+            reason: 'sürükleyerek seçim çalışmalı, ekranda: $labels | $diag');
         await tester.tap(find.widgetWithText(FilledButton, 'Onayla $need/$need'));
         await tester.pump(const Duration(milliseconds: 100));
         expect(b.cells[b.idx(cx, cy)], 0, reason: 'kare ülkeye eklenmeli');

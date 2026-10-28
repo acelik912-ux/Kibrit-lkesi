@@ -19,6 +19,11 @@ class _GameScreenState extends State<GameScreen> {
   late GameController c = GameController(widget.players);
   int _paintVersion = 0;
 
+  /// Testler için.
+  GameController get controller => c;
+  int debugMoves = 0;
+  int debugDrags = 0;
+
   void _restart() {
     setState(() {
       c.dispose();
@@ -44,6 +49,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onMove(Offset p, Size size) {
+    debugMoves++;
     final down = _down;
     if (down == null) return;
     final cell = size.width / c.board.w;
@@ -59,7 +65,10 @@ class _GameScreenState extends State<GameScreen> {
     for (var k = 1; k <= steps; k++) {
       final q = Offset.lerp(from, p, k / steps)!;
       final i = _cellAt(q, size);
-      if (i != null) c.dragCell(i);
+      if (i != null) {
+        debugDrags++;
+        c.dragCell(i);
+      }
     }
     _last = p;
   }
