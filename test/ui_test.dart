@@ -97,7 +97,7 @@ void main() {
         }
         final dynamic st = tester.state(find.byType(GameScreen));
         final GameController gc = st.controller;
-        final diag = 'moves=${st.debugMoves} drags=${st.debugDrags} '
+        final diag = 'moves=${st.debugMoves} drags=${st.debugDrags} log=${(st.debugLog as List).join()} '
             'sel=${gc.selection.map((i) => '(${b.xOf(i)},${b.yOf(i)})').join()} '
             'cap=($cx,${b.yOf(cap)}) phase=${gc.phase} need=${gc.need} '
             'validNext=${gc.valid.contains(b.idx(cx + 1, cy))} '
@@ -119,6 +119,22 @@ void main() {
       });
     }
   }
+
+  testWidgets('denetleyici: dokun + sürükle kare ekler', (tester) async {
+    final c = GameController(makePlayers(1), random: Random(3));
+    c.tossByHuman();
+    await tester.pump(const Duration(seconds: 2));
+    expect(c.phase, Phase.secim);
+    final b = c.board;
+    final cap = c.players[0].capital;
+    final cx = b.xOf(cap), cy = b.yOf(cap) - 3;
+    c.tapCell(b.idx(cx, cy));
+    c.dragCell(b.idx(cx + 1, cy));
+    expect(c.selection.length, c.need >= 2 ? 2 : 1,
+        reason: 'need=${c.need} valid=${c.valid.length}');
+    c.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  });
 
   testWidgets('tam oyun: sen + 3 bot sonuna kadar oynanır', (tester) async {
     final r = Random(42);

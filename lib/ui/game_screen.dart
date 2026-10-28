@@ -23,6 +23,7 @@ class _GameScreenState extends State<GameScreen> {
   GameController get controller => c;
   int debugMoves = 0;
   int debugDrags = 0;
+  final List<String> debugLog = [];
 
   void _restart() {
     setState(() {
@@ -67,7 +68,12 @@ class _GameScreenState extends State<GameScreen> {
       final i = _cellAt(q, size);
       if (i != null) {
         debugDrags++;
+        final before = c.selection.length;
         c.dragCell(i);
+        if (debugLog.length < 30) {
+          debugLog.add('(${c.board.xOf(i)},${c.board.yOf(i)})'
+              '${c.selection.length > before ? '+' : '-'}');
+        }
       }
     }
     _last = p;
