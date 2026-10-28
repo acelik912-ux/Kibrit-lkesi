@@ -22,9 +22,6 @@ class _GameScreenState extends State<GameScreen> {
 
   /// Testler için.
   GameController get controller => c;
-  int debugMoves = 0;
-  int debugDrags = 0;
-  final List<String> debugLog = [];
 
   void _restart() {
     setState(() {
@@ -63,7 +60,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onMove(Offset p, Size size) {
-    debugMoves++;
     final down = _down;
     if (down == null) return;
     final cell = size.width / c.board.w;
@@ -79,15 +75,7 @@ class _GameScreenState extends State<GameScreen> {
     for (var k = 1; k <= steps; k++) {
       final q = Offset.lerp(from, p, k / steps)!;
       final i = _cellAt(q, size);
-      if (i != null) {
-        debugDrags++;
-        final before = c.selection.length;
-        c.dragCell(i);
-        if (debugLog.length < 30) {
-          debugLog.add('(${c.board.xOf(i)},${c.board.yOf(i)})'
-              '${c.selection.length > before ? '+' : '-'}');
-        }
-      }
+      if (i != null) c.dragCell(i);
     }
     _last = p;
   }
@@ -296,9 +284,19 @@ class _BottomPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(c.message, style: t.titleMedium, maxLines: 3),
+                // Sabit yükseklik: mesaj uzayınca defter kaymasın.
+                SizedBox(
+                  height: 72,
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Text(c.message,
+                        style: t.titleMedium,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                ),
                 const SizedBox(height: 8),
-                _buttons(context),
+                SizedBox(height: 48, child: _buttons(context)),
               ],
             ),
           ),
@@ -336,7 +334,7 @@ class _BottomPanel extends StatelessWidget {
         ),
       ]);
     }
-    return const SizedBox(height: 40);
+    return const SizedBox.shrink();
   }
 }
 

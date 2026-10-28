@@ -82,6 +82,8 @@ void main() {
         final onayla = find.textContaining('Onayla 1/');
         final need = int.parse(
             tester.widget<Text>(onayla).data!.split('/').last);
+        // Defter yerinden kaymamalı.
+        expect(tester.getRect(board), rect, reason: 'defter kaymamalı');
         if (need > 1) {
           // Kalan kareleri sürükleyerek seç (aynı satırda sağa doğru).
           final start = Offset(
@@ -97,7 +99,7 @@ void main() {
         }
         final dynamic st = tester.state(find.byType(GameScreen));
         final GameController gc = st.controller;
-        final diag = 'moves=${st.debugMoves} drags=${st.debugDrags} log=${(st.debugLog as List).join()} '
+        final diag = ''
             'sel=${gc.selection.map((i) => '(${b.xOf(i)},${b.yOf(i)})').join()} '
             'cap=($cx,${b.yOf(cap)}) phase=${gc.phase} need=${gc.need} '
             'validNext=${gc.valid.contains(b.idx(cx + 1, cy))} '
