@@ -73,7 +73,9 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
-      - run: flutter create . --project-name kibrit_ulke --org com.acelik --platforms android,ios,web
+      - run: flutter create . --project-name kibrit_ulke --org com.acelik --platforms android
+      - name: Android ayarları (ad, izin, dikey ekran)
+        run: bash scripts/android_ayarla.sh
       - run: flutter pub get
       - name: APK derle
         run: flutter build apk --release

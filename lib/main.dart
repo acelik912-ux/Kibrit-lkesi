@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'ui/menu_screen.dart';
 import 'ui/paper.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Telefonda defter dikey durur.
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(const KibritUlkeApp());
 }
 
