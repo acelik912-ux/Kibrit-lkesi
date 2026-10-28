@@ -37,6 +37,8 @@ jobs:
     name: Web sürümü (GitHub Pages)
     needs: test
     runs-on: ubuntu-latest
+    # Pages ayarı açılana kadar bu adım başarısız olur; APK'yı etkilemesin.
+    continue-on-error: true
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
