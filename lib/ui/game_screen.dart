@@ -18,6 +18,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   late GameController c = GameController(widget.players);
   int _paintVersion = 0;
+  final _boardKey = GlobalKey();
 
   /// Testler için.
   GameController get controller => c;
@@ -42,6 +43,18 @@ class _GameScreenState extends State<GameScreen> {
   Offset? _down;
   Offset? _last;
   bool _moved = false;
+
+  /// Ekran konumunu defterin kendi koordinatına çevir.
+  Offset? _local(Offset global) {
+    final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return box.globalToLocal(global);
+  }
+
+  Size _boardSize(Size fallback) {
+    final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
+    return (box != null && box.hasSize) ? box.size : fallback;
+  }
 
   void _onDown(Offset p) {
     _down = p;
@@ -132,9 +145,15 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 Listener(
                   behavior: HitTestBehavior.opaque,
-                  onPointerDown: (e) => _onDown(e.localPosition),
-                  onPointerMove: (e) => _onMove(e.localPosition, size),
-                  onPointerUp: (_) => _onUp(size),
+                  onPointerDown: (e) {
+                    final p = _local(e.position);
+                    if (p != null) _onDown(p);
+                  },
+                  onPointerMove: (e) {
+                    final p = _local(e.position);
+                    if (p != null) _onMove(p, _boardSize(size));
+                  },
+                  onPointerUp: (_) => _onUp(_boardSize(size)),
                   onPointerCancel: (_) => _down = null,
                   child: Container(
                     decoration: BoxDecoration(
@@ -148,6 +167,7 @@ class _GameScreenState extends State<GameScreen> {
                       ],
                     ),
                     child: CustomPaint(
+                      key: _boardKey,
                       size: size,
                       painter: BoardPainter(
                         board: b,
