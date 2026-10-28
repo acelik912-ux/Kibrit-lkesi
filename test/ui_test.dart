@@ -95,9 +95,13 @@ void main() {
           await gesture.up();
           await tester.pump(const Duration(milliseconds: 100));
         }
-        expect(find.textContaining('Onayla $need/$need'), findsOneWidget,
-            reason: 'sürükleyerek seçim çalışmalı');
-        await tester.tap(find.textContaining('Onayla'));
+        final labels = tester
+            .widgetList<Text>(find.textContaining('Onayla'))
+            .map((t) => t.data)
+            .join(' | ');
+        expect(find.text('Onayla $need/$need'), findsOneWidget,
+            reason: 'sürükleyerek seçim çalışmalı, ekranda: $labels');
+        await tester.tap(find.widgetWithText(FilledButton, 'Onayla $need/$need'));
         await tester.pump(const Duration(milliseconds: 100));
         expect(b.cells[b.idx(cx, cy)], 0, reason: 'kare ülkeye eklenmeli');
         expect(tester.takeException(), isNull);
