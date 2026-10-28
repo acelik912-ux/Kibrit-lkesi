@@ -60,11 +60,17 @@ class Rules {
   /// Oyunun bitmesi için tur sınırı (herkes bir kez oynayınca bir tur).
   static const int maxRounds = 30;
 
+  /// Sallamanın sırrı: kutuyu tam bu kadar sallayan şanslı atar.
+  static const int luckyShakes = 7;
+
   /// Kibrit kutusu atışı. Dik gelmesi en nadir, yatık en sık.
-  static MatchFace toss(Random r) {
+  /// [lucky]: tam [luckyShakes] kez sallandıysa iyi yüzler çok daha sık gelir.
+  static MatchFace toss(Random r, {bool lucky = false}) {
     final v = r.nextDouble();
-    if (v < 0.10) return MatchFace.dik;
-    if (v < 0.42) return MatchFace.yan;
+    final dik = lucky ? 0.30 : 0.10;
+    final yan = lucky ? 0.75 : 0.42; // birikimli
+    if (v < dik) return MatchFace.dik;
+    if (v < yan) return MatchFace.yan;
     return MatchFace.yatik;
   }
 

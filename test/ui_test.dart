@@ -143,6 +143,40 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('kibriti parmakla sallayıp atmak', (tester) async {
+    phoneSize(tester);
+    await tester.pumpWidget(
+        MaterialApp(home: GameScreen(players: makePlayers(1))));
+    await tester.pump();
+    final box = find.byKey(const ValueKey('kibrit'));
+    final center = tester.getCenter(box);
+    final g = await tester.startGesture(center);
+    // 7 kez sağa sola salla.
+    var x = 0.0;
+    for (var k = 0; k < 7; k++) {
+      final target = k.isEven ? 20.0 : -20.0;
+      while ((target - x).abs() > 0.1) {
+        x += (target > x ? 4 : -4);
+        await g.moveTo(center + Offset(x, 0));
+        await tester.pump(const Duration(milliseconds: 8));
+      }
+    }
+    final dynamic st = tester.state(find.byType(GameScreen));
+    final GameController gc = st.controller;
+    expect(gc.shakes, greaterThanOrEqualTo(6));
+    expect(find.textContaining('Salla:'), findsOneWidget);
+    await g.up();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(gc.phase, Phase.atiliyor, reason: 'parmak kalkınca kutu atılmalı');
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(gc.phase, Phase.secim);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   testWidgets('tam oyun: sen + 3 bot sonuna kadar oynanır', (tester) async {
     final r = Random(42);
     final c = GameController(makePlayers(3), random: Random(7));

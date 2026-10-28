@@ -119,4 +119,21 @@ void main() {
       }
     }
   });
+
+  test('tam 7 sallama iyi yüzleri sıklaştırır', () {
+    int good(bool lucky) {
+      final r = Random(1);
+      var g = 0;
+      for (var i = 0; i < 5000; i++) {
+        final f = Rules.toss(r, lucky: lucky);
+        if (f != MatchFace.yatik) g++;
+      }
+      return g;
+    }
+
+    final normal = good(false);
+    final lucky = good(true);
+    expect(normal, inInclusiveRange(1900, 2300)); // ~%42
+    expect(lucky, inInclusiveRange(3550, 3950)); // ~%75
+  });
 }

@@ -23,6 +23,9 @@ class GameController extends ChangeNotifier {
 
   /// Her atışta artar; kibrit animasyonu bunu dinler.
   int tossId = 0;
+
+  /// Bu turda kutu kaç kez sallandı.
+  int shakes = 0;
   List<int> selection = [];
   Set<int> valid = {};
   List<int> lastDropped = [];
@@ -59,12 +62,13 @@ class GameController extends ChangeNotifier {
     selection = [];
     valid = {};
     face = null;
+    shakes = 0;
     if (me.isBot) {
       message = '${me.name} kibrit kutusunu atıyor…';
       _toss();
     } else {
       phase = Phase.atis;
-      message = 'Sıra sende: kibrit kutusunu at';
+      message = 'Sıra sende: kutuyu salla, sonra at';
       _notify();
     }
   }
@@ -72,11 +76,19 @@ class GameController extends ChangeNotifier {
   /// İnsan oyuncu kutuya dokunduğunda.
   void tossByHuman() {
     if (phase != Phase.atis || me.isBot) return;
-    _toss();
+    _toss(lucky: shakes == Rules.luckyShakes);
   }
 
-  Future<void> _toss() async {
-    face = Rules.toss(rng);
+  /// Kutu parmakla bir kez sağa sola sallandı.
+  void shake() {
+    if (phase != Phase.atis || me.isBot) return;
+    shakes++;
+    message = 'Salladın: $shakes';
+    _notify();
+  }
+
+  Future<void> _toss({bool lucky = false}) async {
+    face = Rules.toss(rng, lucky: lucky);
     phase = Phase.atiliyor;
     tossId++;
     _notify();

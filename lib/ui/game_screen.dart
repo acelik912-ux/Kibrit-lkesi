@@ -6,6 +6,7 @@ import '../game/rules.dart';
 import 'board_painter.dart';
 import 'matchbox.dart';
 import 'paper.dart';
+import 'shake_box.dart';
 
 class GameScreen extends StatefulWidget {
   final List<Player> players;
@@ -263,16 +264,24 @@ class _BottomPanel extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              MatchboxView(
-                face: c.face,
-                tossId: c.tossId,
-                duration: GameController.tossDuration,
-                onTap: canToss ? c.tossByHuman : null,
+              ShakeBox(
+                enabled: canToss,
+                onShake: c.shake,
+                onRelease: c.tossByHuman,
+                child: MatchboxView(
+                  key: const ValueKey('kibrit'),
+                  face: c.face,
+                  tossId: c.tossId,
+                  duration: GameController.tossDuration,
+                  onTap: canToss ? c.tossByHuman : null,
+                ),
               ),
               SizedBox(
                 height: 22,
                 child: Text(
-                  showResult ? '${c.face!.label} = ${c.need}' : '',
+                  showResult
+                      ? '${c.face!.label} = ${c.need}'
+                      : (canToss && c.shakes > 0 ? 'Salla: ${c.shakes}' : ''),
                   style: t.titleMedium?.copyWith(color: c.me.color),
                 ),
               ),
