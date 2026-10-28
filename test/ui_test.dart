@@ -110,7 +110,12 @@ void main() {
             .join(' | ');
         expect(find.text('Onayla $need/$need'), findsOneWidget,
             reason: 'sürükleyerek seçim çalışmalı, ekranda: $labels | $diag');
-        await tester.tap(find.widgetWithText(FilledButton, 'Onayla $need/$need'));
+        // Onayla düğmesi ekranın içinde olmalı.
+        final btn = find.widgetWithText(FilledButton, 'Onayla $need/$need');
+        final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+        expect(tester.getRect(btn).bottom, lessThanOrEqualTo(screen.height),
+            reason: 'Onayla ekranın dışında kalmamalı');
+        await tester.tap(btn);
         await tester.pump(const Duration(milliseconds: 100));
         expect(b.cells[b.idx(cx, cy)], 0, reason: 'kare ülkeye eklenmeli');
         expect(tester.takeException(), isNull);

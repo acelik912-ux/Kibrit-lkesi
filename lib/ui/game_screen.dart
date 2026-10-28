@@ -305,34 +305,57 @@ class _BottomPanel extends StatelessWidget {
     );
   }
 
+  /// İki düğmeyi her ekran genişliğinde tek satıra sığdırır.
+  Widget _pair(Widget a, Widget b) {
+    return Row(children: [
+      Flexible(child: a),
+      const SizedBox(width: 8),
+      Flexible(flex: 2, child: b),
+    ]);
+  }
+
+  Widget _fit(String text) =>
+      FittedBox(fit: BoxFit.scaleDown, child: Text(text, maxLines: 1));
+
   Widget _buttons(BuildContext context) {
+    const pad = EdgeInsets.symmetric(horizontal: 12);
     if (c.phase == Phase.bitti) {
-      return Wrap(spacing: 8, children: [
-        FilledButton(onPressed: onRestart, child: const Text('Tekrar oyna')),
+      return _pair(
         OutlinedButton(
+          style: OutlinedButton.styleFrom(padding: pad),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Menü'),
+          child: _fit('Menü'),
         ),
-      ]);
+        FilledButton(
+          style: FilledButton.styleFrom(padding: pad),
+          onPressed: onRestart,
+          child: _fit('Tekrar oyna'),
+        ),
+      );
     }
     if (c.phase == Phase.atis && c.humanTurn) {
-      return FilledButton.icon(
-        onPressed: c.tossByHuman,
-        icon: const Icon(Icons.casino_outlined),
-        label: const Text('Kibriti at'),
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: FilledButton.icon(
+          onPressed: c.tossByHuman,
+          icon: const Icon(Icons.casino_outlined),
+          label: _fit('Kibriti at'),
+        ),
       );
     }
     if (c.phase == Phase.secim) {
-      return Wrap(spacing: 8, runSpacing: 4, children: [
+      return _pair(
         OutlinedButton(
+          style: OutlinedButton.styleFrom(padding: pad),
           onPressed: c.selection.isEmpty ? null : c.undo,
-          child: const Text('Geri al'),
+          child: _fit('Geri al'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(padding: pad),
           onPressed: c.canConfirm ? c.confirm : null,
-          child: Text('Onayla ${c.selection.length}/${c.need}'),
+          child: _fit('Onayla ${c.selection.length}/${c.need}'),
         ),
-      ]);
+      );
     }
     return const SizedBox.shrink();
   }
