@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -74,6 +75,8 @@ class _ShakeBoxState extends State<ShakeBox> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // İlk savuruş da tam sayılsın.
+      dragStartBehavior: DragStartBehavior.down,
       onHorizontalDragStart: _start,
       onHorizontalDragUpdate: _update,
       onHorizontalDragEnd: _end,

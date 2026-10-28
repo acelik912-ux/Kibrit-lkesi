@@ -168,6 +168,7 @@ void main() {
     await g.up();
     await tester.pump(const Duration(milliseconds: 50));
     expect(gc.phase, Phase.atiliyor, reason: 'parmak kalkınca kutu atılmalı');
+    expect(gc.shakes, 7, reason: '7 sallama tam 7 sayılmalı');
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
