@@ -97,3 +97,37 @@ jobs:
             kibrit-ulkesi-kucuk.apk
             kibrit-ulkesi.apk
           make_latest: true
+
+  ekran:
+    name: Ekran testi (oyunu tarayıcıda oyna)
+    needs: test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter create . --project-name kibrit_ulke --org com.acelik --platforms web
+      - run: flutter pub get
+      - run: flutter build web --release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Oyunu oyna ve ekran görüntüsü al
+        run: |
+          (cd build/web && python -m http.server 8000 &) 
+          sleep 2
+          python scripts/ekran_testi.py http://localhost:8000/ ekranlar
+      - name: Görüntüleri ekran-testi dalına koy
+        if: always()
+        run: |
+          cd ekranlar
+          git init -q -b ekran-testi
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -qm "Ekran testi ${{ github.run_number }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ekran-testi
