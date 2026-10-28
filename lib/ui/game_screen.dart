@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../game/controller.dart';
@@ -31,6 +30,47 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     c.dispose();
     super.dispose();
+  }
+
+  // Parmak hareketi: dokunma mı sürükleme mi, kendimiz ayırt ediyoruz.
+  Offset? _down;
+  Offset? _last;
+  bool _moved = false;
+
+  void _onDown(Offset p) {
+    _down = p;
+    _last = p;
+    _moved = false;
+  }
+
+  void _onMove(Offset p, Size size) {
+    final down = _down;
+    if (down == null) return;
+    final cell = size.width / c.board.w;
+    if (!_moved) {
+      if ((p - down).distance < cell * 0.35) return;
+      _moved = true;
+      final i = _cellAt(down, size);
+      if (i != null) c.dragCell(i);
+    }
+    // Hızlı kaydırmada aradaki kareler atlanmasın.
+    final from = _last!;
+    final steps = ((p - from).distance / (cell / 3)).ceil().clamp(1, 200);
+    for (var k = 1; k <= steps; k++) {
+      final q = Offset.lerp(from, p, k / steps)!;
+      final i = _cellAt(q, size);
+      if (i != null) c.dragCell(i);
+    }
+    _last = p;
+  }
+
+  void _onUp(Size size) {
+    final down = _down;
+    if (down != null && !_moved) {
+      final i = _cellAt(down, size);
+      if (i != null) c.tapCell(i);
+    }
+    _down = null;
   }
 
   int? _cellAt(Offset local, Size size) {
@@ -75,22 +115,12 @@ class _GameScreenState extends State<GameScreen> {
             final size = Size(box.maxWidth, box.maxHeight);
             return Stack(
               children: [
-                GestureDetector(
+                Listener(
                   behavior: HitTestBehavior.opaque,
-                  // Sürüklemenin ilk karesi de seçilsin.
-                  dragStartBehavior: DragStartBehavior.down,
-                  onTapUp: (d) {
-                    final i = _cellAt(d.localPosition, size);
-                    if (i != null) c.tapCell(i);
-                  },
-                  onPanStart: (d) {
-                    final i = _cellAt(d.localPosition, size);
-                    if (i != null) c.dragCell(i);
-                  },
-                  onPanUpdate: (d) {
-                    final i = _cellAt(d.localPosition, size);
-                    if (i != null) c.dragCell(i);
-                  },
+                  onPointerDown: (e) => _onDown(e.localPosition),
+                  onPointerMove: (e) => _onMove(e.localPosition, size),
+                  onPointerUp: (_) => _onUp(size),
+                  onPointerCancel: (_) => _down = null,
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Paper.gridLine, width: 1.5),
