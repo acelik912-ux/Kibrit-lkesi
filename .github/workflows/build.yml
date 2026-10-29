@@ -103,6 +103,10 @@ jobs:
       - name: Küçük APK derle (çoğu yeni telefon, arm64)
         run: flutter build apk --release --split-per-abi --target-platform android-arm64
       - run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk kibrit-ulkesi-kucuk.apk
+      - name: İmzayı kontrol et
+        run: |
+          python3 scripts/imza_kontrol.py kibrit-ulkesi.apk
+          python3 scripts/imza_kontrol.py kibrit-ulkesi-kucuk.apk
       - name: Sürüm olarak yayınla
         uses: softprops/action-gh-release@v2
         with:
