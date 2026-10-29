@@ -92,6 +92,8 @@ jobs:
       - run: flutter create . --project-name kibrit_ulke --org com.acelik --platforms android
       - name: Android ayarları (ad, izin, dikey ekran)
         run: bash scripts/android_ayarla.sh
+      - name: Sabit imza (güncellemeler üstüne kurulabilsin)
+        run: mkdir -p ~/.android && cp android_imza/debug.keystore ~/.android/debug.keystore
       - run: flutter pub get
       - name: Uygulama simgesi
         run: dart run flutter_launcher_icons
