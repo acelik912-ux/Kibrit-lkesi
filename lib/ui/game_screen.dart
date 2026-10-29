@@ -850,6 +850,7 @@ class _BigToss extends StatelessWidget {
       child: Container(
       color: Colors.black.withAlpha(165),
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -858,12 +859,17 @@ class _BigToss extends StatelessWidget {
             children: [
               CharacterAvatar(id: c.current, size: 54, active: true),
               const SizedBox(width: 8),
-              Text('Sıra sende!',
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Sıra sende!',
                   style: t.headlineMedium?.copyWith(
                     color: Night.gold,
                     fontWeight: FontWeight.w800,
                     shadows: const [Shadow(color: Night.ember, blurRadius: 16)],
                   )),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -970,13 +976,16 @@ class _TossResultState extends State<_TossResult> {
         scale: _visible ? 1 : 0.6,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutBack,
-        child: Text(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
           '${f.label} geldi: ${f.squares} kare!',
           style: t.headlineSmall?.copyWith(
             color: Night.gold,
             fontWeight: FontWeight.w800,
             shadows: const [Shadow(color: Night.ember, blurRadius: 14)],
           ),
+        ),
         ),
       ),
     );
@@ -1048,8 +1057,13 @@ class _TapHintState extends State<_TapHint>
         children: [
           Icon(Icons.touch_app_rounded, color: Night.text),
           SizedBox(width: 6),
-          Text('Devam etmek için dokun',
-              style: TextStyle(color: Night.text, fontSize: 17)),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('Devam etmek için dokun',
+                  style: TextStyle(color: Night.text, fontSize: 17)),
+            ),
+          ),
         ],
       ),
     );
