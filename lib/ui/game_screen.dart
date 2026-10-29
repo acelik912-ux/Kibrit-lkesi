@@ -905,9 +905,13 @@ class _BigToss extends StatelessWidget {
                         ),
                       // Düştüğü yüzün sayısı kutunun üstünde.
                       if (landed)
-                        Positioned(
-                          top: -10,
-                          right: -10,
+                        Align(
+                          // Sayı, düşen kutunun tam üstünde dursun.
+                          alignment: Alignment(0, switch (c.face!) {
+                            MatchFace.yatik => 0.42,
+                            MatchFace.yan => -0.04,
+                            MatchFace.dik => -0.2,
+                          }),
                           child: _FaceNumber(n: c.need),
                         ),
                     ],
@@ -1005,8 +1009,8 @@ class _FaceNumber extends StatelessWidget {
       curve: Curves.elasticOut,
       builder: (context, v, child) => Transform.scale(scale: v, child: child),
       child: Container(
-        width: 46,
-        height: 46,
+        width: 40,
+        height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
@@ -1018,7 +1022,7 @@ class _FaceNumber extends StatelessWidget {
           '$n',
           style: const TextStyle(
             color: Night.deep,
-            fontSize: 28,
+            fontSize: 25,
             fontWeight: FontWeight.w900,
             height: 1,
           ),
