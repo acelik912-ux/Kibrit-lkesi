@@ -33,6 +33,18 @@ class GameController extends ChangeNotifier {
 
   /// Kazanan oyuncu; -1 = insan oyuncu elendi.
   int? winner;
+
+  /// Oyundan düşenler, düşme sırasıyla.
+  final List<int> eliminated = [];
+
+  /// Oyun bitince: 1., 2., 3. ... sırasıyla oyuncu numaraları.
+  List<int> ranking = [];
+
+  /// Senin bu oyunda kazandığın yıldız (bonus dahil).
+  int stars = 0;
+
+  /// Zor seviyede birinci olunca verilen ek yıldız.
+  bool bonusStar = false;
   bool _disposed = false;
 
   GameController(this.players, {Random? random}) : rng = random ?? Random() {
@@ -213,6 +225,7 @@ class GameController extends ChangeNotifier {
       final v = players[res.victim!];
       if (res.victimEliminated) {
         v.alive = false;
+        eliminated.add(v.id);
         message = v.isBot
             ? '${v.name} başkentini kaybetti, oyundan çıktı!'
             : 'Başkentin düştü!';
@@ -264,7 +277,37 @@ class GameController extends ChangeNotifier {
     _startTurn();
   }
 
+  /// Sıralama: ayakta kalanlar büyüklüğe göre, sonra en son düşenden
+  /// ilk düşene doğru.
+  List<int> _computeRanking() {
+    final alive = players.where((p) => p.alive).map((p) => p.id).toList()
+      ..sort((a, b) => countOf(b).compareTo(countOf(a)));
+    return [...alive, ...eliminated.reversed];
+  }
+
+  /// 1. → 3 yıldız, 2. → 2, 3. → 1; sonuncu yıldız alamaz.
+  static int starsFor(int place, int playerCount) {
+    if (place >= playerCount) return 0;
+    return (4 - place).clamp(0, 3);
+  }
+
+  int get myPlace => ranking.indexOf(0) + 1;
+
   void _finish(int w) {
+    final human = players.firstWhere((p) => !p.isBot);
+    if (!human.alive && !eliminated.contains(human.id)) {
+      eliminated.add(human.id);
+    }
+    ranking = _computeRanking();
+    if (w >= 0 && ranking.isNotEmpty && ranking.first != w) {
+      ranking
+        ..remove(w)
+        ..insert(0, w);
+    }
+    stars = starsFor(myPlace, players.length);
+    bonusStar = myPlace == 1 &&
+        players.where((p) => p.isBot).every((p) => p.level == BotLevel.zor);
+    if (bonusStar) stars++;
     winner = w;
     phase = Phase.bitti;
     if (w == -1) {

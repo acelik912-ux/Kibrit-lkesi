@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kibrit_ulke/game/bot.dart';
+import 'package:kibrit_ulke/game/controller.dart';
+import 'package:kibrit_ulke/game/progress.dart';
 import 'package:kibrit_ulke/game/models.dart';
 import 'package:kibrit_ulke/game/rules.dart';
 
@@ -135,5 +137,23 @@ void main() {
     final lucky = good(true);
     expect(normal, inInclusiveRange(1900, 2300)); // ~%42
     expect(lucky, inInclusiveRange(3550, 3950)); // ~%75
+  });
+
+  test('yıldız kuralı: 1.→3, 2.→2, 3.→1, sonuncu 0', () {
+    expect(GameController.starsFor(1, 2), 3);
+    expect(GameController.starsFor(2, 2), 0);
+    expect(GameController.starsFor(1, 4), 3);
+    expect(GameController.starsFor(2, 4), 2);
+    expect(GameController.starsFor(3, 4), 1);
+    expect(GameController.starsFor(4, 4), 0);
+    expect(GameController.starsFor(2, 3), 2);
+    expect(GameController.starsFor(3, 3), 0);
+  });
+
+  test('rütbe ilerlemesi', () {
+    expect(const Progress(stars: 0).rankName, 'Acemi Çizer');
+    expect(const Progress(stars: 12).rankName, 'Kalem Ustası');
+    expect(const Progress(stars: 20).progressToNext, closeTo(0.5, 0.001));
+    expect(const Progress(stars: 500).nextRank, isNull);
   });
 }

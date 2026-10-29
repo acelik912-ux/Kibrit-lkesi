@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kibrit_ulke/game/controller.dart';
 import 'package:kibrit_ulke/game/models.dart';
 import 'package:kibrit_ulke/ui/board_painter.dart';
@@ -28,6 +29,8 @@ void phoneSize(WidgetTester tester, {double w = 412, double h = 915}) {
 }
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('menü telefonda taşmadan açılır', (tester) async {
     phoneSize(tester);
     await tester.pumpWidget(const MaterialApp(home: MenuScreen()));
@@ -198,6 +201,11 @@ void main() {
     }
     expect(c.phase, Phase.bitti);
     expect(c.winner, isNotNull);
+    // Sıralama herkesi bir kez içermeli, yıldızlar kurala uymalı.
+    expect(c.ranking.toSet(), {0, 1, 2, 3});
+    expect(c.ranking.length, 4);
+    if (c.winner! >= 0) expect(c.ranking.first, c.winner);
+    expect(c.stars, GameController.starsFor(c.myPlace, 4) + (c.bonusStar ? 1 : 0));
     c.dispose();
     await tester.pump(const Duration(seconds: 5));
   });

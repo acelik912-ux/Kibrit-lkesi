@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/models.dart';
+import '../game/progress.dart';
 import 'game_screen.dart';
 import 'paper.dart';
 import 'sprites.dart';
@@ -15,6 +16,18 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   int bots = 1;
   BotLevel level = BotLevel.orta;
+  Progress? progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    final p = await Progress.load();
+    if (mounted) setState(() => progress = p);
+  }
 
   void _start() {
     final players = <Player>[
@@ -28,9 +41,9 @@ class _MenuScreenState extends State<MenuScreen> {
           level: level,
         ),
     ];
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GameScreen(players: players)),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => GameScreen(players: players)))
+        .then((_) => _loadProgress());
   }
 
   @override
@@ -81,6 +94,18 @@ class _MenuScreenState extends State<MenuScreen> {
                     Text('Defterin ortasında bir ülke, cebinde bir kibrit kutusu',
                         textAlign: TextAlign.center,
                         style: t.titleMedium?.copyWith(color: Night.dim)),
+                    if (progress != null) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(70),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Night.gold.withAlpha(90)),
+                        ),
+                        child: RankBar(p: progress!),
+                      ),
+                    ],
                     const SizedBox(height: 22),
                     // Seçilen rakipler masada.
                     SizedBox(
@@ -167,6 +192,10 @@ class _HowToPlay extends StatelessWidget {
       'Ülkesinden kopan parçalar silinir, başkente bağlı kalan yaşar.',
       'Başkent ★ ancak tur başında sınırdaysa kesilebilir; kesilirse ülke düşer.',
       'Son kalan ya da 30. turda en büyük ülke kazanır.',
+      'Sıralamana göre yıldız kazanırsın: 1. ⭐⭐⭐, 2. ⭐⭐, 3. ⭐ '
+          '(sonuncu yıldız alamaz). Zor botları yenersen +1 bonus!',
+      'Yıldız biriktir, rütbe atla: Acemi Çizer → Kalem Ustası → … → '
+          'Defter İmparatoru.',
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../game/controller.dart';
 import '../game/models.dart';
+import '../game/progress.dart';
 import '../game/rules.dart';
 import 'board_painter.dart';
 import 'matchbox.dart';
@@ -25,10 +26,40 @@ class _GameScreenState extends State<GameScreen> {
   /// Testler için.
   GameController get controller => c;
 
+  // Oyun sonu: kazanılan yıldızlar kaydedilir.
+  bool _saved = false;
+  Progress? _after;
+  bool _rankUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    c.addListener(_onChange);
+  }
+
+  Future<void> _onChange() async {
+    if (c.phase != Phase.bitti || _saved) return;
+    _saved = true;
+    final before = await Progress.load();
+    final after = await Progress.addGame(stars: c.stars, place: c.myPlace);
+    if (!mounted) return;
+    setState(() {
+      _after = after;
+      _rankUp = after.rankIndex > before.rankIndex;
+    });
+  }
+
   void _restart() {
     setState(() {
+      c.removeListener(_onChange);
       c.dispose();
-      c = GameController(widget.players);
+      for (final p in widget.players) {
+        p.alive = true;
+      }
+      c = GameController(widget.players)..addListener(_onChange);
+      _saved = false;
+      _after = null;
+      _rankUp = false;
     });
   }
 
@@ -186,7 +217,11 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 ..._flags(size),
-                if (c.phase == Phase.bitti) _GameOverBanner(c: c),
+                if (c.phase == Phase.bitti)
+                  Positioned.fill(
+                    child: _GameOverBanner(
+                        c: c, after: _after, rankUp: _rankUp),
+                  ),
               ],
             );
           }),
@@ -441,66 +476,252 @@ class _BottomPanel extends StatelessWidget {
 
 class _GameOverBanner extends StatelessWidget {
   final GameController c;
-  const _GameOverBanner({required this.c});
+  final Progress? after;
+  final bool rankUp;
+  const _GameOverBanner({required this.c, this.after, this.rankUp = false});
+
+  static const _medals = [
+    Color(0xFFFFC94A), // altın
+    Color(0xFFD9DEE6), // gümüş
+    Color(0xFFE09A5B), // bronz
+    Color(0xFF8A7A66),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final w = c.winner;
     final won = w != null && w >= 0;
-    return Center(
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 2.2, end: 1),
-        duration: const Duration(milliseconds: 380),
-        curve: Curves.easeOutBack,
-        builder: (context, scale, child) =>
-            Transform.scale(scale: scale, child: child),
-        child: Transform.rotate(
-          angle: -0.14,
-          child: SizedBox(
-            width: 250,
-            height: 250,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 215,
-                  height: 215,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Night.deep.withAlpha(215),
-                  ),
-                ),
-                Image.asset(Sprites.stamp, fit: BoxFit.contain),
-                Padding(
-                  padding: const EdgeInsets.all(54),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    final baseStars = c.stars - (c.bonusStar ? 1 : 0);
+    return Container(
+      color: Colors.black.withAlpha(150),
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Damga
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 2.2, end: 1),
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOutBack,
+              builder: (context, scale, child) =>
+                  Transform.scale(scale: scale, child: child),
+              child: Transform.rotate(
+                angle: -0.14,
+                child: SizedBox(
+                  width: 170,
+                  height: 170,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      if (won) CharacterAvatar(id: w, size: 66),
-                      const SizedBox(height: 4),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          c.message,
-                          textAlign: TextAlign.center,
-                          style: t.headlineMedium?.copyWith(
-                            color: const Color(0xFFFF4A3D),
-                            fontWeight: FontWeight.w800,
-                            shadows: const [
-                              Shadow(color: Color(0xFFFF2A1A), blurRadius: 12),
-                            ],
-                          ),
+                      Container(
+                        width: 146,
+                        height: 146,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Night.deep.withAlpha(225),
+                        ),
+                      ),
+                      Image.asset(Sprites.stamp, fit: BoxFit.contain),
+                      Padding(
+                        padding: const EdgeInsets.all(36),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (won) CharacterAvatar(id: w, size: 44),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                c.message,
+                                textAlign: TextAlign.center,
+                                style: t.titleLarge?.copyWith(
+                                  color: const Color(0xFFFF4A3D),
+                                  fontWeight: FontWeight.w800,
+                                  shadows: const [
+                                    Shadow(
+                                        color: Color(0xFFFF2A1A),
+                                        blurRadius: 12),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 6),
+            // Sonuç kartı
+            Container(
+              width: 300,
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              decoration: BoxDecoration(
+                color: Night.wood.withAlpha(240),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Night.gold.withAlpha(160), width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: Night.ember.withAlpha(90), blurRadius: 22),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Yıldızlar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < 3; i++)
+                        _PopStar(filled: i < baseStars, delayIndex: i),
+                      if (c.bonusStar) ...[
+                        const SizedBox(width: 6),
+                        const _PopStar(filled: true, delayIndex: 3, bonus: true),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    c.stars == 0
+                        ? 'Bu sefer yıldız yok'
+                        : '+${c.stars} yıldız${c.bonusStar ? ' (Zor bonusu dahil)' : ''}',
+                    style: t.titleMedium?.copyWith(color: Night.gold),
+                  ),
+                  const Divider(color: Colors.white24, height: 14),
+                  Text('Sıralama',
+                      style: t.titleMedium?.copyWith(color: Night.dim)),
+                  for (var k = 0; k < c.ranking.length; k++)
+                    _rankRow(context, k, c.ranking[k]),
+                  if (after != null) ...[
+                    const Divider(color: Colors.white24, height: 16),
+                    if (rankUp)
+                      Text('Yeni rütbe: ${after!.rankName}!',
+                          style: t.titleLarge?.copyWith(
+                            color: Night.gold,
+                            fontWeight: FontWeight.w800,
+                            shadows: const [
+                              Shadow(color: Night.ember, blurRadius: 14),
+                            ],
+                          )),
+                    RankBar(p: after!),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _rankRow(BuildContext context, int k, int id) {
+    final t = Theme.of(context).textTheme;
+    final p = c.players[id];
+    final me = !p.isBot;
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: me ? Sprites.glowOf(id).withAlpha(40) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text('${k + 1}.',
+                style: t.titleLarge?.copyWith(
+                  color: _medals[k.clamp(0, 3)],
+                  fontWeight: FontWeight.w800,
+                )),
+          ),
+          CharacterAvatar(id: id, size: 30),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(p.name,
+                style: t.titleMedium?.copyWith(color: Sprites.glowOf(id))),
+          ),
+          Text('${c.countOf(id)} kare',
+              style: t.bodyMedium?.copyWith(color: Night.dim)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Sırayla "pıt" diye beliren yıldız.
+class _PopStar extends StatelessWidget {
+  final bool filled;
+  final int delayIndex;
+  final bool bonus;
+  const _PopStar(
+      {required this.filled, required this.delayIndex, this.bonus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final start = 0.15 + delayIndex * 0.18;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 1400),
+      builder: (context, v, _) {
+        final local = ((v - start) / 0.25).clamp(0.0, 1.0);
+        final scale = filled ? Curves.elasticOut.transform(local) : 1.0;
+        return Transform.scale(
+          scale: filled ? scale : 1,
+          child: Icon(
+            Icons.star_rounded,
+            size: bonus ? 34 : 46,
+            color: filled
+                ? (bonus ? Night.ember : Night.gold)
+                : Colors.white.withAlpha(40),
+            shadows: filled
+                ? const [Shadow(color: Night.ember, blurRadius: 16)]
+                : null,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Toplam yıldız, rütbe ve sonraki rütbeye ilerleme.
+class RankBar extends StatelessWidget {
+  final Progress p;
+  const RankBar({required this.p});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final next = p.nextRank;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.star_rounded, color: Night.gold, size: 20),
+            Text(' ${p.stars}  ·  ${p.rankName}',
+                style: t.titleMedium?.copyWith(color: Night.text)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: p.progressToNext,
+            minHeight: 8,
+            color: Night.gold,
+            backgroundColor: Colors.white12,
+          ),
+        ),
+        if (next != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text('${next.$2} için ${next.$1 - p.stars} yıldız daha',
+                style: t.bodySmall?.copyWith(color: Night.dim)),
+          ),
+      ],
     );
   }
 }
