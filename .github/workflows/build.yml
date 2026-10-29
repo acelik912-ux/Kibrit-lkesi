@@ -93,6 +93,8 @@ jobs:
       - name: Android ayarları (ad, izin, dikey ekran)
         run: bash scripts/android_ayarla.sh
       - run: flutter pub get
+      - name: Uygulama simgesi
+        run: dart run flutter_launcher_icons
       - name: APK derle (tüm telefonlar)
         run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk kibrit-ulkesi.apk

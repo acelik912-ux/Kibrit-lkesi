@@ -19,19 +19,22 @@ class KibritUlkeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Paper.ink,
-        surface: Paper.background,
+        seedColor: Night.gold,
+        brightness: Brightness.dark,
+        primary: Night.gold,
+        onPrimary: Night.deep,
+        surface: Night.wood,
       ),
-      scaffoldBackgroundColor: Paper.background,
+      scaffoldBackgroundColor: Night.deep,
       useMaterial3: true,
     );
     return MaterialApp(
       title: 'Kibrit Ülkesi',
       debugShowCheckedModeBanner: false,
       theme: base.copyWith(
-        textTheme: GoogleFonts.patrickHandTextTheme(base.textTheme).apply(
-          bodyColor: Paper.ink,
-          displayColor: Paper.ink,
+        textTheme: GoogleFonts.baloo2TextTheme(base.textTheme).apply(
+          bodyColor: Night.text,
+          displayColor: Night.text,
         ),
       ),
       home: const MenuScreen(),

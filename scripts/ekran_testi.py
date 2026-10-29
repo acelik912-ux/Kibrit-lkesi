@@ -28,6 +28,56 @@ def click_text(page, text):
     log.append(f"tıklandı: {text}")
 
 
+def onayla_durumu(page):
+    """Onayla düğmesindeki 'seçilen/gereken' sayılarını okur."""
+    import re
+    btns = page.get_by_role("button")
+    for i in range(btns.count()):
+        try:
+            t = btns.nth(i).inner_text(timeout=300) or ""
+        except Exception:  # noqa: BLE001
+            continue
+        m = re.search(r"Onayla\s*(\d+)/(\d+)", t)
+        if m:
+            return int(m.group(1)), int(m.group(2))
+    return None
+
+
+BOARD = {}
+
+
+def sec_kare(page):
+    """Senin ülkenin bir üst satırındaki boş karelere dokunur.
+    Defterin ekrandaki yerini ilk turda deneyerek bulur."""
+    left, right = 23, 403  # genişlik dar: defter yatayda dolu
+    cw = (right - left) / 18
+    if "top" not in BOARD:
+        for top in range(100, 260, 4):
+            page.touchscreen.tap(left + 9.5 * cw, top + 15.5 * cw)
+            time.sleep(0.25)
+            d = onayla_durumu(page)
+            if d and d[0] > 0:
+                BOARD["top"] = top
+                log.append(f"defter üstü bulundu: y={top}")
+                break
+        else:
+            log.append("TEST HATASI: defter bulunamadı")
+            return
+        start = 1
+    else:
+        start = 0
+    top = BOARD["top"]
+    # Satır 15 sağa doğru, sonra satır 14 (ülke büyüdükçe yer değişir).
+    hedefler = [(c, 15) for c in range(9, 18)] + [(c, 14) for c in range(9, 18)] \
+        + [(c, 13) for c in range(9, 18)] + [(c, 12) for c in range(9, 18)]
+    for (cx, cy) in hedefler[start:]:
+        d = onayla_durumu(page)
+        if not d or d[0] >= d[1]:
+            break
+        page.touchscreen.tap(left + (cx + 0.5) * cw, top + (cy + 0.5) * cw)
+        time.sleep(0.2)
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch()
     page = browser.new_page(viewport={"width": 412, "height": 892},
@@ -54,16 +104,7 @@ with sync_playwright() as p:
             shot(page, f"3_atis_{tur}")
             # Defterde geçerli bir boş kareye dokun: insan oyuncunun ülkesi
             # alttadır; ülkenin hemen üstündeki kareyi dene.
-            # 412x892 ekranda defter: x 23..403, y 160..666 (18x24 kare).
-            left, right, top, bottom = 23, 403, 160, 666
-            cw = (right - left) / 18
-            chh = (bottom - top) / 24
-            # Ülkenin üst satırı y=16; hemen üstündeki boş satır y=15.
-            for k in range(6):
-                x = left + (7 + k % 5 + 0.5) * cw
-                y = top + (15 - k // 5 + 0.5) * chh
-                page.touchscreen.tap(x, y)
-                time.sleep(0.3)
+            sec_kare(page)
             shot(page, f"4_secim_{tur}")
             try:
                 page.get_by_role("button", name="Onayla").first.click(timeout=2000)

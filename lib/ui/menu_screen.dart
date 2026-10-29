@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../game/models.dart';
 import 'game_screen.dart';
-import 'matchbox.dart';
 import 'paper.dart';
+import 'sprites.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -41,26 +41,67 @@ class _MenuScreenState extends State<MenuScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 24, 24, 24),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(
-                      height: 110,
-                      child: Center(
-                        child: MatchboxView(face: MatchFace.yan, tossId: 0),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Night.ember.withAlpha(110),
+                            blurRadius: 30,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: AspectRatio(
+                          aspectRatio: 1.35,
+                          child: Image.asset(Sprites.menu, fit: BoxFit.cover),
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 18),
                     Text('Kibrit Ülkesi',
                         textAlign: TextAlign.center,
-                        style: t.displayMedium?.copyWith(height: 1)),
-                    const SizedBox(height: 4),
+                        style: t.displaySmall?.copyWith(
+                          height: 1,
+                          fontWeight: FontWeight.w800,
+                          color: Night.gold,
+                          shadows: const [
+                            Shadow(color: Night.ember, blurRadius: 18),
+                          ],
+                        )),
+                    const SizedBox(height: 6),
                     Text('Defterin ortasında bir ülke, cebinde bir kibrit kutusu',
                         textAlign: TextAlign.center,
-                        style: t.titleMedium?.copyWith(color: Paper.pencil)),
-                    const SizedBox(height: 28),
+                        style: t.titleMedium?.copyWith(color: Night.dim)),
+                    const SizedBox(height: 22),
+                    // Seçilen rakipler masada.
+                    SizedBox(
+                      height: 78,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (var i = 0; i < 4; i++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: AnimatedOpacity(
+                                opacity: i <= bots ? 1 : 0.18,
+                                duration: const Duration(milliseconds: 250),
+                                child: CharacterAvatar(
+                                    id: i, size: i == 0 ? 74 : 62),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     Text('Rakip sayısı', style: t.titleLarge),
                     const SizedBox(height: 6),
                     SegmentedButton<int>(
@@ -89,7 +130,12 @@ class _MenuScreenState extends State<MenuScreen> {
                       onPressed: _start,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        textStyle: t.headlineSmall,
+                        textStyle: t.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                        backgroundColor: Night.gold,
+                        foregroundColor: Night.deep,
+                        shadowColor: Night.ember,
+                        elevation: 10,
                       ),
                       child: const Text('Oyuna başla'),
                     ),
@@ -133,7 +179,7 @@ class _HowToPlay extends StatelessWidget {
             child: Text('• $r', style: t.bodyLarge),
           ),
         Text('İpucu: parmağını sürükleyerek birden çok kare seçebilirsin.',
-            style: t.bodyMedium?.copyWith(color: Paper.pencil)),
+            style: t.bodyMedium?.copyWith(color: Night.dim)),
       ],
     );
   }

@@ -92,12 +92,7 @@ class BoardPainter extends CustomPainter {
       if (diff(x + 1, y)) canvas.drawLine(r.topRight, r.bottomRight, pen);
     }
 
-    // Başkentler.
-    for (final p in players) {
-      if (!p.alive || p.capital < 0) continue;
-      final r = cellRect(p.capital);
-      _star(canvas, r.center, min(cw, ch) * 0.42, p.color);
-    }
+    // Başkentler: bayrak görseli tahtanın üstüne ayrıca konur.
 
     // Seçilebilir kareler: küçük kurşun kalem noktası.
     final dot = Paint()..color = Paper.pencil.withAlpha(150);
@@ -126,29 +121,6 @@ class BoardPainter extends CustomPainter {
         canvas.drawLine(r.topRight, r.bottomLeft, x);
       }
     }
-  }
-
-  void _star(Canvas canvas, Offset c, double radius, Color color) {
-    final path = Path();
-    for (var k = 0; k < 10; k++) {
-      final rr = k.isEven ? radius : radius * 0.45;
-      final a = -pi / 2 + k * pi / 5;
-      final p = Offset(c.dx + cos(a) * rr, c.dy + sin(a) * rr);
-      if (k == 0) {
-        path.moveTo(p.dx, p.dy);
-      } else {
-        path.lineTo(p.dx, p.dy);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, Paint()..color = Colors.white);
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..strokeJoin = StrokeJoin.round);
   }
 
   @override

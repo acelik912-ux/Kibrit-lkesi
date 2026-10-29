@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../game/models.dart';
-import 'paper.dart';
+import 'sprites.dart';
 
 /// Havaya atılıp dönen ve sonunda bir yüzüne düşen kibrit kutusu.
 class MatchboxView extends StatefulWidget {
@@ -91,9 +91,14 @@ class _MatchboxViewState extends State<MatchboxView>
                     child: Transform.scale(
                       scaleY: squash,
                       alignment: Alignment.bottomCenter,
-                      child: CustomPaint(
+                      child: SizedBox.fromSize(
                         size: _sizeFor(shown),
-                        painter: _BoxPainter(shown),
+                        child: Image.asset(
+                          Sprites.matchbox(shown),
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                          filterQuality: FilterQuality.medium,
+                        ),
                       ),
                     ),
                   ),
@@ -109,85 +114,11 @@ class _MatchboxViewState extends State<MatchboxView>
   static Size _sizeFor(MatchFace f) {
     switch (f) {
       case MatchFace.yatik:
-        return const Size(80, 20);
+        return const Size(98, 34);
       case MatchFace.yan:
-        return const Size(80, 54);
+        return const Size(80, 88);
       case MatchFace.dik:
-        return const Size(54, 80);
+        return const Size(96, 108);
     }
   }
-}
-
-class _BoxPainter extends CustomPainter {
-  final MatchFace face;
-  _BoxPainter(this.face);
-
-  static const _yellow = Color(0xFFF2C94C);
-  static const _red = Color(0xFFC0392B);
-  static const _brown = Color(0xFF6D4C41);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rr = RRect.fromRectAndRadius(rect, const Radius.circular(3));
-    final outline = Paint()
-      ..color = Paper.ink
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6;
-
-    if (face == MatchFace.yatik) {
-      // Yatık: yandan bakınca ince kutu, sürtünme şeridi görünür.
-      canvas.drawRRect(rr, Paint()..color = _yellow);
-      final strip = rect.deflate(4);
-      canvas.drawRect(strip, Paint()..color = _brown);
-      final grain = Paint()..color = Colors.black.withAlpha(60);
-      final r = Random(7);
-      for (var i = 0; i < 40; i++) {
-        canvas.drawCircle(
-            Offset(strip.left + r.nextDouble() * strip.width,
-                strip.top + r.nextDouble() * strip.height),
-            0.7,
-            grain);
-      }
-      canvas.drawRRect(rr, outline);
-      return;
-    }
-
-    // Yan ve dik: etiketli geniş yüz görünür.
-    canvas.drawRRect(rr, Paint()..color = _yellow);
-    canvas.save();
-    if (face == MatchFace.dik) {
-      canvas.translate(size.width, 0);
-      canvas.rotate(pi / 2);
-    }
-    final w = face == MatchFace.dik ? size.height : size.width;
-    final h = face == MatchFace.dik ? size.width : size.height;
-    final band = Rect.fromLTWH(0, h * 0.30, w, h * 0.40);
-    canvas.drawRect(band, Paint()..color = _red);
-    // Küçük alev
-    final flame = Path()
-      ..moveTo(w * 0.16, h * 0.62)
-      ..quadraticBezierTo(w * 0.08, h * 0.48, w * 0.16, h * 0.36)
-      ..quadraticBezierTo(w * 0.24, h * 0.48, w * 0.16, h * 0.62);
-    canvas.drawPath(flame, Paint()..color = _yellow);
-    final tp = TextPainter(
-      text: const TextSpan(
-        text: 'KİBRİT',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.2,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas,
-        Offset(w * 0.58 - tp.width / 2, h * 0.5 - tp.height / 2));
-    canvas.restore();
-    canvas.drawRRect(rr, outline);
-  }
-
-  @override
-  bool shouldRepaint(covariant _BoxPainter old) => old.face != face;
 }

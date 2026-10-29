@@ -7,6 +7,7 @@ import 'board_painter.dart';
 import 'matchbox.dart';
 import 'paper.dart';
 import 'shake_box.dart';
+import 'sprites.dart';
 
 class GameScreen extends StatefulWidget {
   final List<Player> players;
@@ -29,6 +30,12 @@ class _GameScreenState extends State<GameScreen> {
       c.dispose();
       c = GameController(widget.players);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Sprites.precacheAll(context);
   }
 
   @override
@@ -149,9 +156,14 @@ class _GameScreenState extends State<GameScreen> {
                       border: Border.all(color: Paper.gridLine, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withAlpha(18),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          color: Night.ember.withAlpha(70),
+                          blurRadius: 28,
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withAlpha(120),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -173,6 +185,7 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
                 ),
+                ..._flags(size),
                 if (c.phase == Phase.bitti) _GameOverBanner(c: c),
               ],
             );
@@ -180,6 +193,33 @@ class _GameScreenState extends State<GameScreen> {
         ),
       ),
     );
+  }
+}
+
+extension on _GameScreenState {
+  /// Her başkentin üstüne altın bayrak.
+  List<Widget> _flags(Size size) {
+    final b = c.board;
+    final cw = size.width / b.w;
+    final ch = size.height / b.h;
+    return [
+      for (final p in c.players)
+        if (p.alive && p.capital >= 0 && b.cells[p.capital] == p.id)
+          Positioned(
+            left: b.xOf(p.capital) * cw - cw * 0.3,
+            top: (b.yOf(p.capital) + 1) * ch - ch * 1.9,
+            width: cw * 1.7,
+            height: ch * 1.9,
+            child: IgnorePointer(
+              child: Image.asset(
+                Sprites.flag,
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomLeft,
+                filterQuality: FilterQuality.medium,
+              ),
+            ),
+          ),
+    ];
   }
 }
 
@@ -198,10 +238,11 @@ class _TopBar extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                color: Paper.ink,
+                color: Night.text,
                 onPressed: () => Navigator.of(context).pop(),
               ),
-              Text('Tur ${c.round}/${Rules.maxRounds}', style: t.titleLarge),
+              Text('Tur ${c.round}/${Rules.maxRounds}',
+                  style: t.titleLarge?.copyWith(color: Night.gold)),
             ],
           ),
           Wrap(
@@ -227,21 +268,35 @@ class _PlayerChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = c.current == p.id && c.phase != Phase.bitti;
     final t = Theme.of(context).textTheme;
+    final glow = Sprites.glowOf(p.id);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      height: 34,
+      padding: const EdgeInsets.fromLTRB(4, 0, 10, 0),
       decoration: BoxDecoration(
-        color: active ? p.color.withAlpha(40) : Colors.transparent,
+        color: active ? glow.withAlpha(45) : Colors.black.withAlpha(60),
         border: Border.all(
-            color: p.alive ? p.color : Paper.pencil, width: active ? 2 : 1),
+            color: p.alive ? glow : Night.dim.withAlpha(90),
+            width: active ? 2 : 1),
         borderRadius: BorderRadius.circular(20),
+        boxShadow: active
+            ? [BoxShadow(color: glow.withAlpha(140), blurRadius: 14)]
+            : const [],
       ),
-      child: Text(
-        p.alive ? '${p.name} · ${c.countOf(p.id)}' : p.name,
-        style: t.titleMedium?.copyWith(
-          color: p.alive ? p.color : Paper.pencil,
-          decoration: p.alive ? null : TextDecoration.lineThrough,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CharacterAvatar(id: p.id, size: 28, active: active, alive: p.alive),
+          const SizedBox(width: 4),
+          Text(
+            p.alive ? '${p.name} · ${c.countOf(p.id)}' : p.name,
+            style: t.titleMedium?.copyWith(
+              color: p.alive ? glow : Night.dim,
+              height: 1,
+              decoration: p.alive ? null : TextDecoration.lineThrough,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -282,7 +337,12 @@ class _BottomPanel extends StatelessWidget {
                   showResult
                       ? '${c.face!.label} = ${c.need}'
                       : (canToss && c.shakes > 0 ? 'Salla: ${c.shakes}' : ''),
-                  style: t.titleMedium?.copyWith(color: c.me.color),
+                  style: t.titleMedium?.copyWith(
+                    color: Sprites.glowOf(c.current),
+                    shadows: [
+                      Shadow(color: Sprites.glowOf(c.current), blurRadius: 8),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -296,12 +356,21 @@ class _BottomPanel extends StatelessWidget {
                 // Sabit yükseklik: mesaj uzayınca defter kaymasın.
                 SizedBox(
                   height: 72,
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Text(c.message,
-                        style: t.titleMedium,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      CharacterAvatar(id: c.current, size: 54, active: true),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomLeft,
+                          child: Text(c.message,
+                              style: t.titleMedium,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -378,19 +447,58 @@ class _GameOverBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final w = c.winner;
-    final color = (w != null && w >= 0) ? c.players[w].color : Paper.margin;
+    final won = w != null && w >= 0;
     return Center(
-      child: Transform.rotate(
-        angle: -0.08,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          decoration: BoxDecoration(
-            color: Paper.background.withAlpha(235),
-            border: Border.all(color: color, width: 3),
-            borderRadius: BorderRadius.circular(6),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 2.2, end: 1),
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutBack,
+        builder: (context, scale, child) =>
+            Transform.scale(scale: scale, child: child),
+        child: Transform.rotate(
+          angle: -0.14,
+          child: SizedBox(
+            width: 250,
+            height: 250,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 215,
+                  height: 215,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Night.deep.withAlpha(215),
+                  ),
+                ),
+                Image.asset(Sprites.stamp, fit: BoxFit.contain),
+                Padding(
+                  padding: const EdgeInsets.all(54),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (won) CharacterAvatar(id: w, size: 66),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          c.message,
+                          textAlign: TextAlign.center,
+                          style: t.headlineMedium?.copyWith(
+                            color: const Color(0xFFFF4A3D),
+                            fontWeight: FontWeight.w800,
+                            shadows: const [
+                              Shadow(color: Color(0xFFFF2A1A), blurRadius: 12),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          child: Text(c.message,
-              style: t.displaySmall?.copyWith(color: color)),
         ),
       ),
     );
