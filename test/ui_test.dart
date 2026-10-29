@@ -149,6 +149,8 @@ void main() {
     final c = GameController(makePlayers(1), random: Random(3));
     c.tossByHuman();
     await tester.pump(const Duration(seconds: 2));
+    expect(c.phase, Phase.sonuc);
+    c.acceptResult();
     expect(c.phase, Phase.secim);
     final b = c.board;
     final cap = c.players[0].capital;

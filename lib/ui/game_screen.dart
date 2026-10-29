@@ -398,8 +398,11 @@ class _BottomPanel extends StatelessWidget {
               ),
               SizedBox(
                 height: 24,
+                width: 124,
                 child: showResult
-                    ? Text(
+                    ? FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
                         '${c.face!.label}: ${c.need} kare',
                         style: t.titleMedium?.copyWith(
                           color: Sprites.glowOf(c.current),
@@ -409,6 +412,7 @@ class _BottomPanel extends StatelessWidget {
                                 blurRadius: 8),
                           ],
                         ),
+                      ),
                       )
                     : const SizedBox.shrink(),
               ),
