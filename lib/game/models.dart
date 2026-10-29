@@ -23,7 +23,7 @@ extension MatchFaceInfo on MatchFace {
       case MatchFace.yan:
         return 'Yan';
       case MatchFace.dik:
-        return 'Dik!';
+        return 'Dik';
     }
   }
 }
