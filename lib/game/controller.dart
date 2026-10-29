@@ -11,6 +11,11 @@ enum Phase { atis, atiliyor, secim, botOynuyor, bitti }
 /// Oyunun akışını yönetir: sıra, kibrit atışı, seçim, botlar.
 class GameController extends ChangeNotifier {
   static const tossDuration = Duration(milliseconds: 1400);
+  static const resultHold = Duration(milliseconds: 450);
+
+  /// Kibrit kutusu ekranın ortasında büyük mü gösteriliyor?
+  bool get bigToss =>
+      humanTurn && (phase == Phase.atis || phase == Phase.atiliyor);
 
   final List<Player> players;
   final Random rng;
@@ -106,6 +111,11 @@ class GameController extends ChangeNotifier {
     _notify();
     await _wait(tossDuration);
     if (_disposed) return;
+    // Senin atışında sonuç ortada biraz görünsün.
+    if (!me.isBot) {
+      await _wait(resultHold);
+      if (_disposed) return;
+    }
     if (me.isBot) {
       await _botPlay();
     } else {

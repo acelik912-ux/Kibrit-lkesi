@@ -145,11 +145,28 @@ class _GameScreenState extends State<GameScreen> {
             listenable: c,
             builder: (context, _) {
               _paintVersion++;
-              return Column(
+              return Stack(
                 children: [
-                  _TopBar(c: c),
-                  Expanded(child: _buildBoard()),
-                  _BottomPanel(c: c, onRestart: _restart),
+                  Column(
+                    children: [
+                      _TopBar(c: c),
+                      Expanded(child: _buildBoard()),
+                      _BottomPanel(c: c, onRestart: _restart),
+                    ],
+                  ),
+                  // Sıra sende: kutu ortada büyük.
+                  Positioned.fill(
+                    // Kaybolurken alttaki deftere dokunmayı engellemesin.
+                    child: IgnorePointer(
+                      ignoring: !c.bigToss,
+                      child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: c.bigToss
+                          ? _BigToss(key: const ValueKey('ortada'), c: c)
+                          : const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
@@ -345,7 +362,6 @@ class _BottomPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final canToss = c.phase == Phase.atis && c.humanTurn;
     final showResult = c.face != null && c.phase != Phase.atiliyor;
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 4, 12, 8),
@@ -354,34 +370,18 @@ class _BottomPanel extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ShakeBox(
-                enabled: canToss,
-                onShake: c.shake,
-                onRelease: c.tossByHuman,
-                child: SizedBox(
-                  width: 124,
-                  height: 116,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      MatchboxView(
-                        key: const ValueKey('kibrit'),
-                        face: c.face,
-                        tossId: c.tossId,
-                        duration: GameController.tossDuration,
-                        onTap: canToss ? c.tossByHuman : null,
-                      ),
-                      // Sallama sayacı
-                      if (canToss && c.shakes > 0)
-                        Positioned(
-                          top: 0,
-                          right: 2,
-                          child: _ShakeCounter(count: c.shakes),
+              SizedBox(
+                width: 124,
+                height: 116,
+                child: c.bigToss
+                    ? null
+                    : Center(
+                        child: MatchboxView(
+                          face: c.face,
+                          tossId: c.tossId,
+                          duration: GameController.tossDuration,
                         ),
-                    ],
-                  ),
-                ),
+                      ),
               ),
               SizedBox(
                 height: 24,
@@ -397,9 +397,7 @@ class _BottomPanel extends StatelessWidget {
                           ],
                         ),
                       )
-                    : (canToss && c.shakes == 0
-                        ? const _ShakeHint()
-                        : const SizedBox.shrink()),
+                    : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -467,15 +465,8 @@ class _BottomPanel extends StatelessWidget {
         ),
       );
     }
-    if (c.phase == Phase.atis && c.humanTurn) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: FilledButton.icon(
-          onPressed: c.tossByHuman,
-          icon: const Icon(Icons.casino_outlined),
-          label: _fit('Kibriti at'),
-        ),
-      );
+    if (c.bigToss) {
+      return const SizedBox.shrink(); // düğme ortadaki kutunun altında
     }
     if (c.phase == Phase.secim) {
       return _pair(
@@ -784,7 +775,8 @@ class _ShakeCounter extends StatelessWidget {
 
 /// "⟵ salla ⟶" diye sağa sola kayan ipucu.
 class _ShakeHint extends StatefulWidget {
-  const _ShakeHint();
+  final bool big;
+  const _ShakeHint({this.big = false});
 
   @override
   State<_ShakeHint> createState() => _ShakeHintState();
@@ -807,16 +799,161 @@ class _ShakeHintState extends State<_ShakeHint>
     return AnimatedBuilder(
       animation: _a,
       builder: (context, child) => Transform.translate(
-        offset: Offset((Curves.easeInOut.transform(_a.value) - 0.5) * 14, 0),
+        offset: Offset(
+            (Curves.easeInOut.transform(_a.value) - 0.5) * (widget.big ? 24 : 14),
+            0),
         child: child,
       ),
-      child: const Text(
+      child: Text(
         '⟵ salla ⟶',
         style: TextStyle(
           color: Night.gold,
-          fontSize: 16,
+          fontSize: widget.big ? 26 : 16,
           fontWeight: FontWeight.w700,
-          shadows: [Shadow(color: Night.ember, blurRadius: 8)],
+          shadows: const [Shadow(color: Night.ember, blurRadius: 8)],
+        ),
+      ),
+    );
+  }
+}
+
+/// Sıra sende olunca ekranın ortasında büyük, sallanabilen kibrit kutusu.
+class _BigToss extends StatelessWidget {
+  final GameController c;
+  const _BigToss({super.key, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final canToss = c.phase == Phase.atis;
+    final landed = c.phase == Phase.atiliyor && c.face != null;
+    return Container(
+      color: Colors.black.withAlpha(165),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CharacterAvatar(id: c.current, size: 54, active: true),
+              const SizedBox(width: 8),
+              Text('Sıra sende!',
+                  style: t.headlineMedium?.copyWith(
+                    color: Night.gold,
+                    fontWeight: FontWeight.w800,
+                    shadows: const [Shadow(color: Night.ember, blurRadius: 16)],
+                  )),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ShakeBox(
+            enabled: canToss,
+            onShake: c.shake,
+            onRelease: c.tossByHuman,
+            child: SizedBox(
+              width: 300,
+              height: 280,
+              child: FittedBox(
+                child: SizedBox(
+                  width: 124,
+                  height: 116,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      MatchboxView(
+                        key: const ValueKey('kibrit'),
+                        face: c.face,
+                        tossId: c.tossId,
+                        duration: GameController.tossDuration,
+                        onTap: canToss ? c.tossByHuman : null,
+                      ),
+                      if (canToss && c.shakes > 0)
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: _ShakeCounter(count: c.shakes),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 40,
+            child: canToss
+                ? (c.shakes == 0
+                    ? const _ShakeHint(big: true)
+                    : Text('Bırakınca atılır',
+                        style: t.titleMedium?.copyWith(color: Night.dim)))
+                : _TossResult(c: c, show: landed),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 48,
+            child: canToss
+                ? FilledButton.icon(
+                    onPressed: c.tossByHuman,
+                    icon: const Icon(Icons.casino_outlined),
+                    label: const Text('Kibriti at'),
+                  )
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kutu yere düşünce çıkan büyük sonuç yazısı.
+class _TossResult extends StatefulWidget {
+  final GameController c;
+  final bool show;
+  const _TossResult({required this.c, required this.show});
+
+  @override
+  State<_TossResult> createState() => _TossResultState();
+}
+
+class _TossResultState extends State<_TossResult> {
+  bool _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Kutu yere değdiği anda (animasyonun ~%85'i) yazı belirsin.
+    Future.delayed(
+      Duration(
+          milliseconds:
+              (GameController.tossDuration.inMilliseconds * 0.85).round()),
+      () {
+        if (mounted) setState(() => _visible = true);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final f = widget.c.face;
+    if (f == null) return const SizedBox.shrink();
+    final t = Theme.of(context).textTheme;
+    return AnimatedOpacity(
+      opacity: _visible ? 1 : 0,
+      duration: const Duration(milliseconds: 150),
+      child: AnimatedScale(
+        scale: _visible ? 1 : 0.6,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutBack,
+        child: Text(
+          '${f.label} geldi: ${f.squares} kare!',
+          style: t.headlineSmall?.copyWith(
+            color: Night.gold,
+            fontWeight: FontWeight.w800,
+            shadows: const [Shadow(color: Night.ember, blurRadius: 14)],
+          ),
         ),
       ),
     );
