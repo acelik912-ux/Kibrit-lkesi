@@ -25,14 +25,8 @@ flutter:
 # Uygulama simgesi (derlemede: dart run flutter_launcher_icons)
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: assets/ikon/ikon.png
   adaptive_icon_background: "#5A3216"
   adaptive_icon_foreground: assets/ikon/ikon_on.png
   min_sdk_android: 21
-  remove_alpha_ios: true
-  web:
-    generate: true
-    image_path: assets/ikon/ikon.png
-    background_color: "#0C0806"
-    theme_color: "#FFC94A"
