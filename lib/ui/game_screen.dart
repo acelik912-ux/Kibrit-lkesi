@@ -160,7 +160,18 @@ class _GameScreenState extends State<GameScreen> {
                     child: IgnorePointer(
                       ignoring: !c.bigToss,
                       child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
+                        duration: const Duration(milliseconds: 380),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        // Kutu sol alttaki yerinden kalkar, oraya geri döner.
+                        transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim,
+                          child: ScaleTransition(
+                            scale: anim,
+                            alignment: const Alignment(-0.72, 0.86),
+                            child: child,
+                          ),
+                        ),
                       child: c.bigToss
                           ? _BigToss(key: const ValueKey('ortada'), c: c)
                           : const SizedBox.shrink(),
@@ -362,7 +373,9 @@ class _BottomPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final showResult = c.face != null && c.phase != Phase.atiliyor;
+    final showResult = c.face != null &&
+        c.phase != Phase.atiliyor &&
+        c.phase != Phase.atis;
     return Container(
       padding: const EdgeInsets.fromLTRB(22, 4, 12, 8),
       child: Row(
@@ -387,7 +400,7 @@ class _BottomPanel extends StatelessWidget {
                 height: 24,
                 child: showResult
                     ? Text(
-                        '${c.face!.label} = ${c.need}',
+                        '${c.face!.label}: ${c.need} kare',
                         style: t.titleMedium?.copyWith(
                           color: Sprites.glowOf(c.current),
                           shadows: [
@@ -826,8 +839,11 @@ class _BigToss extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final canToss = c.phase == Phase.atis;
-    final landed = c.phase == Phase.atiliyor && c.face != null;
-    return Container(
+    final landed = c.phase == Phase.sonuc && c.face != null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: landed ? c.acceptResult : null,
+      child: Container(
       color: Colors.black.withAlpha(165),
       alignment: Alignment.center,
       child: Column(
@@ -867,13 +883,22 @@ class _BigToss extends StatelessWidget {
                         face: c.face,
                         tossId: c.tossId,
                         duration: GameController.tossDuration,
-                        onTap: canToss ? c.tossByHuman : null,
+                        onTap: canToss
+                            ? c.tossByHuman
+                            : (landed ? c.acceptResult : null),
                       ),
                       if (canToss && c.shakes > 0)
                         Positioned(
                           top: -4,
                           right: -4,
                           child: _ShakeCounter(count: c.shakes),
+                        ),
+                      // Düştüğü yüzün sayısı kutunun üstünde.
+                      if (landed)
+                        Positioned(
+                          top: -10,
+                          right: -10,
+                          child: _FaceNumber(n: c.need),
                         ),
                     ],
                   ),
@@ -889,7 +914,7 @@ class _BigToss extends StatelessWidget {
                     ? const _ShakeHint(big: true)
                     : Text('Bırakınca atılır',
                         style: t.titleMedium?.copyWith(color: Night.dim)))
-                : _TossResult(c: c, show: landed),
+                : (landed ? _TossResult(c: c) : null),
           ),
           const SizedBox(height: 10),
           SizedBox(
@@ -900,9 +925,10 @@ class _BigToss extends StatelessWidget {
                     icon: const Icon(Icons.casino_outlined),
                     label: const Text('Kibriti at'),
                   )
-                : null,
+                : (landed ? const _TapHint() : null),
           ),
         ],
+      ),
       ),
     );
   }
@@ -911,8 +937,7 @@ class _BigToss extends StatelessWidget {
 /// Kutu yere düşünce çıkan büyük sonuç yazısı.
 class _TossResult extends StatefulWidget {
   final GameController c;
-  final bool show;
-  const _TossResult({required this.c, required this.show});
+  const _TossResult({required this.c});
 
   @override
   State<_TossResult> createState() => _TossResultState();
@@ -924,15 +949,9 @@ class _TossResultState extends State<_TossResult> {
   @override
   void initState() {
     super.initState();
-    // Kutu yere değdiği anda (animasyonun ~%85'i) yazı belirsin.
-    Future.delayed(
-      Duration(
-          milliseconds:
-              (GameController.tossDuration.inMilliseconds * 0.85).round()),
-      () {
-        if (mounted) setState(() => _visible = true);
-      },
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _visible = true);
+    });
   }
 
   @override
@@ -955,6 +974,79 @@ class _TossResultState extends State<_TossResult> {
             shadows: const [Shadow(color: Night.ember, blurRadius: 14)],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Kutunun üstünde duran büyük sayı.
+class _FaceNumber extends StatelessWidget {
+  final int n;
+  const _FaceNumber({required this.n});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.elasticOut,
+      builder: (context, v, child) => Transform.scale(scale: v, child: child),
+      child: Container(
+        width: 46,
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Night.gold,
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [BoxShadow(color: Night.ember, blurRadius: 16)],
+        ),
+        child: Text(
+          '$n',
+          style: const TextStyle(
+            color: Night.deep,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Devam etmek için dokun" — yanıp sönen ipucu.
+class _TapHint extends StatefulWidget {
+  const _TapHint();
+
+  @override
+  State<_TapHint> createState() => _TapHintState();
+}
+
+class _TapHintState extends State<_TapHint>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 800))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween(begin: 0.35, end: 1.0).animate(_a),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.touch_app_rounded, color: Night.text),
+          SizedBox(width: 6),
+          Text('Devam etmek için dokun',
+              style: TextStyle(color: Night.text, fontSize: 17)),
+        ],
       ),
     );
   }

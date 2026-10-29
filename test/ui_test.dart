@@ -58,7 +58,22 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
         }
         expect(tester.takeException(), isNull);
+        // Kutu ortada geldiği yüzde bekler, üstünde sayı yazar.
+        final dynamic st0 = tester.state(find.byType(GameScreen));
+        final GameController gc0 = st0.controller;
+        expect(gc0.phase, Phase.sonuc);
+        expect(find.text('Devam etmek için dokun'), findsOneWidget);
+        expect(find.text('${gc0.need}'), findsOneWidget,
+            reason: 'kutunun üstünde sayı');
+        await tester.tap(find.text('Devam etmek için dokun'));
+        for (var i = 0; i < 6; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(gc0.phase, Phase.secim);
         expect(find.textContaining('Onayla'), findsOneWidget);
+        expect(find.text('${gc0.face!.label}: ${gc0.need} kare'),
+            findsOneWidget,
+            reason: 'altta kaç kare geldiği yazmalı');
 
         // Deftere dokun: senin ülkenin hemen üstündeki boş kare seçilmeli.
         final board = find.byWidgetPredicate(
@@ -176,6 +191,12 @@ void main() {
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+    expect(gc.phase, Phase.sonuc, reason: 'kutu ortada beklemeli');
+    // Kutuya tekrar dokununca yerine döner.
+    await tester.tap(find.byKey(const ValueKey('kibrit')));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(gc.phase, Phase.secim);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -189,6 +210,7 @@ void main() {
     while (c.phase != Phase.bitti && steps < 20000) {
       if (!c.players[0].isBot && c.current == 0) {
         if (c.phase == Phase.atis) c.tossByHuman();
+        if (c.phase == Phase.sonuc) c.acceptResult();
         if (c.phase == Phase.secim) {
           while (c.valid.isNotEmpty && c.selection.length < c.need) {
             final v = c.valid.toList();

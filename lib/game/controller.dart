@@ -6,16 +6,17 @@ import 'bot.dart';
 import 'models.dart';
 import 'rules.dart';
 
-enum Phase { atis, atiliyor, secim, botOynuyor, bitti }
+/// sonuc: senin atışın düştü, kutu ortada bekliyor; dokununca devam.
+enum Phase { atis, atiliyor, sonuc, secim, botOynuyor, bitti }
 
 /// Oyunun akışını yönetir: sıra, kibrit atışı, seçim, botlar.
 class GameController extends ChangeNotifier {
   static const tossDuration = Duration(milliseconds: 1400);
-  static const resultHold = Duration(milliseconds: 450);
 
   /// Kibrit kutusu ekranın ortasında büyük mü gösteriliyor?
   bool get bigToss =>
-      humanTurn && (phase == Phase.atis || phase == Phase.atiliyor);
+      humanTurn &&
+      (phase == Phase.atis || phase == Phase.atiliyor || phase == Phase.sonuc);
 
   final List<Player> players;
   final Random rng;
@@ -96,6 +97,12 @@ class GameController extends ChangeNotifier {
     _toss(lucky: shakes == Rules.luckyShakes);
   }
 
+  /// Ortadaki kutuya dokununca: kutu yerine döner, kare seçimi başlar.
+  void acceptResult() {
+    if (phase != Phase.sonuc) return;
+    _beginHumanSelection();
+  }
+
   /// Kutu parmakla bir kez sağa sola sallandı.
   void shake() {
     if (phase != Phase.atis || me.isBot) return;
@@ -111,15 +118,13 @@ class GameController extends ChangeNotifier {
     _notify();
     await _wait(tossDuration);
     if (_disposed) return;
-    // Senin atışında sonuç ortada biraz görünsün.
-    if (!me.isBot) {
-      await _wait(resultHold);
-      if (_disposed) return;
-    }
     if (me.isBot) {
       await _botPlay();
     } else {
-      _beginHumanSelection();
+      // Kutu geldiği yüzde ortada kalır; sen dokununca devam edilir.
+      phase = Phase.sonuc;
+      message = '${face!.label} geldi: $need kare! Devam için dokun';
+      _notify();
     }
   }
 

@@ -102,6 +102,9 @@ with sync_playwright() as p:
             click_text(page, "Kibriti at")
             time.sleep(2.2)
             shot(page, f"3_atis_{tur}")
+            # Kutu ortada bekliyor: dokununca yerine döner.
+            page.touchscreen.tap(206, 446)
+            time.sleep(0.8)
             # Defterde geçerli bir boş kareye dokun: insan oyuncunun ülkesi
             # alttadır; ülkenin hemen üstündeki kareyi dene.
             sec_kare(page)
