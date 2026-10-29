@@ -7,7 +7,8 @@ import 'models.dart';
 import 'rules.dart';
 
 /// sonuc: senin atışın düştü, kutu ortada bekliyor; dokununca devam.
-enum Phase { atis, atiliyor, sonuc, secim, botOynuyor, bitti }
+/// hedef: silah seçildi, defterde hedef bekleniyor.
+enum Phase { atis, hedef, atiliyor, sonuc, secim, botOynuyor, bitti }
 
 /// Oyunun akışını yönetir: sıra, kibrit atışı, seçim, botlar.
 class GameController extends ChangeNotifier {
@@ -62,6 +63,14 @@ class GameController extends ChangeNotifier {
 
   /// Bu tur için ipucu (yoksa null).
   String? hint;
+
+  /// Nişan alınan silah (hedef aşamasında).
+  Silah? aim;
+
+  /// Silah patlayınca artar; ekrandaki patlama bunu dinler.
+  int blastEventId = 0;
+  List<int> blastCells = [];
+  Silah? lastWeapon;
   bool _disposed = false;
 
   GameController(this.players, {Random? random}) : rng = random ?? Random() {
@@ -93,9 +102,12 @@ class GameController extends ChangeNotifier {
     face = null;
     shakes = 0;
     hint = null;
+    aim = null;
+    // Kalkan sahibinin sırası gelince kalkar.
+    me.shielded = false;
     if (me.isBot) {
       message = '${me.name} kibrit kutusunu atıyor…';
-      _toss();
+      _botTurnStart();
     } else {
       phase = Phase.atis;
       message = 'Sıra sende: kutuyu salla, sonra at';
@@ -112,6 +124,101 @@ class GameController extends ChangeNotifier {
   void tossByHuman() {
     if (phase != Phase.atis || me.isBot) return;
     _toss(lucky: shakes == Rules.luckyShakes);
+  }
+
+  // ---- Silahlar ----
+
+  bool canUse(Silah s) =>
+      humanTurn && phase == Phase.atis && !me.usedWeapons.contains(s);
+
+  /// Silah düğmesine basıldı.
+  void startAim(Silah s) {
+    if (!canUse(s)) return;
+    if (s == Silah.kalkan) {
+      me.usedWeapons.add(s);
+      me.shielded = true;
+      message = '🛡️ Kalkan açıldı! Bir sonraki turuna kadar güvendesin.';
+      _notify();
+      return;
+    }
+    final t = s == Silah.bomba
+        ? Rules.bombTargets(board, players, current)
+        : Rules.spearTargets(board, players, current);
+    if (t.isEmpty) {
+      message = s == Silah.mizrak
+          ? 'Mızrak için rakibe en fazla 6 kare uzakta, düz hizada olmalısın'
+          : 'Vurulacak rakip kare yok';
+      _notify();
+      return;
+    }
+    aim = s;
+    valid = t;
+    phase = Phase.hedef;
+    message = s.aimText;
+    _notify();
+  }
+
+  void cancelAim() {
+    if (phase != Phase.hedef) return;
+    aim = null;
+    valid = {};
+    phase = Phase.atis;
+    message = 'Sıra sende: kutuyu salla, sonra at';
+    _notify();
+  }
+
+  /// Silahı ateşle: kareleri sil, patlamayı göster.
+  MoveResult _useWeapon(Silah s, int target) {
+    final cells = s == Silah.bomba
+        ? Rules.bombCells(board, players, current, target)
+        : Rules.spearCells(board, players, current, target);
+    me.usedWeapons.add(s);
+    final res = Rules.removeCells(board, players, cells);
+    lastDropped = res.dropped;
+    blastCells = cells;
+    lastWeapon = s;
+    blastEventId++;
+    final who = me.isBot ? me.name : 'Sen';
+    final verb = s == Silah.bomba
+        ? (me.isBot ? 'bomba attı' : 'bomba attın')
+        : (me.isBot ? 'mızrak sapladı' : 'mızrak sapladın');
+    message = '${s.emoji} $who $verb: ${cells.length} kare'
+        '${res.dropped.isNotEmpty ? ' (+${res.dropped.length} koptu)' : ''}';
+    return res;
+  }
+
+  Future<void> _fire(int target) async {
+    final s = aim;
+    if (s == null) return;
+    _useWeapon(s, target);
+    aim = null;
+    valid = {};
+    phase = Phase.botOynuyor; // patlama sırasında dokunma yok
+    _notify();
+    await _wait(const Duration(milliseconds: 1100));
+    if (_disposed) return;
+    phase = Phase.atis; // silah ekstra: şimdi kibriti at
+    message = 'Şimdi kibriti at!';
+    _notify();
+  }
+
+  Future<void> _botTurnStart() async {
+    final w = Bot.chooseWeapon(board, players, current, round, rng);
+    if (w != null) {
+      if (w.$1 == Silah.kalkan) {
+        me.usedWeapons.add(Silah.kalkan);
+        me.shielded = true;
+        message = '🛡️ ${me.name} kalkan açtı!';
+      } else {
+        _useWeapon(w.$1, w.$2);
+      }
+      phase = Phase.botOynuyor;
+      _notify();
+      await _wait(const Duration(milliseconds: 1300));
+      if (_disposed) return;
+      message = '${me.name} kibrit kutusunu atıyor…';
+    }
+    _toss();
   }
 
   /// Ortadaki kutuya dokununca: kutu yerine döner, kare seçimi başlar.
@@ -168,6 +275,10 @@ class GameController extends ChangeNotifier {
   // ---- İnsan oyuncunun seçimleri ----
 
   void tapCell(int i) {
+    if (phase == Phase.hedef) {
+      if (valid.contains(i)) _fire(i);
+      return;
+    }
     if (phase != Phase.secim) return;
     if (selection.isNotEmpty && selection.last == i) {
       undo();

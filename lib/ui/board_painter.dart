@@ -17,6 +17,9 @@ class BoardPainter extends CustomPainter {
   final List<int> dropped;
   final int version;
 
+  /// Silah nişanı: geçerli hedefler kırmızı nişangâhla gösterilir.
+  final bool targetMode;
+
   BoardPainter({
     required this.board,
     required this.players,
@@ -26,6 +29,7 @@ class BoardPainter extends CustomPainter {
     required this.valid,
     required this.dropped,
     required this.version,
+    this.targetMode = false,
   });
 
   @override
@@ -120,9 +124,23 @@ class BoardPainter extends CustomPainter {
     }
 
     // Seçilebilir kareler: küçük kurşun kalem noktası.
-    final dot = Paint()..color = Paper.pencil.withAlpha(150);
-    for (final i in valid) {
-      canvas.drawCircle(cellRect(i).center, min(cw, ch) * 0.11, dot);
+    if (targetMode) {
+      final ring = Paint()
+        ..color = const Color(0xFFE53935)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4;
+      for (final i in valid) {
+        final c = cellRect(i).center;
+        final r = min(cw, ch) * 0.28;
+        canvas.drawCircle(c, r, ring);
+        canvas.drawLine(c.translate(-r * 1.3, 0), c.translate(r * 1.3, 0), ring);
+        canvas.drawLine(c.translate(0, -r * 1.3), c.translate(0, r * 1.3), ring);
+      }
+    } else {
+      final dot = Paint()..color = Paper.pencil.withAlpha(150);
+      for (final i in valid) {
+        canvas.drawCircle(cellRect(i).center, min(cw, ch) * 0.11, dot);
+      }
     }
 
     // Seçim.

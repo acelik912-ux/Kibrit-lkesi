@@ -235,9 +235,12 @@ class _GameScreenState extends State<GameScreen> {
                         selection: c.selection,
                         kind: c.kind,
                         current: c.current,
-                        valid: c.humanTurn && c.phase == Phase.secim
+                        valid: c.humanTurn &&
+                                (c.phase == Phase.secim ||
+                                    c.phase == Phase.hedef)
                             ? c.valid
                             : const <int>{},
+                        targetMode: c.phase == Phase.hedef,
                         dropped: c.lastDropped,
                         version: _paintVersion,
                       ),
@@ -245,6 +248,8 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 ..._flags(size),
+                if (c.blastEventId > 0)
+                  ..._blasts(size),
                 if (c.starEventId > 0)
                   Positioned.fill(
                     child: IgnorePointer(
@@ -273,6 +278,28 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 extension on _GameScreenState {
+  /// Silah patlaması: vurulan her karede kısa bir parlama.
+  List<Widget> _blasts(Size size) {
+    final b = c.board;
+    final cw = size.width / b.w;
+    final ch = size.height / b.h;
+    return [
+      for (final i in c.blastCells)
+        Positioned(
+          left: (b.xOf(i) + 0.5) * cw - cw * 1.2,
+          top: (b.yOf(i) + 0.5) * ch - ch * 1.2,
+          width: cw * 2.4,
+          height: ch * 2.4,
+          child: IgnorePointer(
+            child: _Blast(
+              key: ValueKey('${c.blastEventId}-$i'),
+              spear: c.lastWeapon == Silah.mizrak,
+            ),
+          ),
+        ),
+    ];
+  }
+
   /// Her başkentin üstüne altın bayrak.
   List<Widget> _flags(Size size) {
     final b = c.board;
@@ -365,7 +392,9 @@ class _PlayerChip extends StatelessWidget {
           CharacterAvatar(id: p.id, size: 28, active: active, alive: p.alive),
           const SizedBox(width: 4),
           Text(
-            p.alive ? '${p.name} · ${c.countOf(p.id)}' : p.name,
+            p.alive
+                ? '${p.shielded ? '🛡️ ' : ''}${p.name} · ${c.countOf(p.id)}'
+                : p.name,
             style: t.titleMedium?.copyWith(
               color: p.alive ? glow : Night.dim,
               height: 1,
@@ -497,6 +526,16 @@ class _BottomPanel extends StatelessWidget {
     }
     if (c.bigToss) {
       return const SizedBox.shrink(); // düğme ortadaki kutunun altında
+    }
+    if (c.phase == Phase.hedef) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: OutlinedButton.icon(
+          onPressed: c.cancelAim,
+          icon: const Icon(Icons.close_rounded),
+          label: _fit('Vazgeç'),
+        ),
+      );
     }
     if (c.phase == Phase.secim) {
       return _pair(
@@ -871,7 +910,12 @@ class _BigToss extends StatelessWidget {
       child: Container(
       color: Colors.black.withAlpha(165),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // Küçük ekranda her şey sığsın diye gerekirse tümü küçülür.
+      child: LayoutBuilder(builder: (context, box) => FittedBox(
+      fit: BoxFit.scaleDown,
+      child: SizedBox(
+      width: box.maxWidth < 400 ? box.maxWidth : 400,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -893,6 +937,10 @@ class _BigToss extends StatelessWidget {
               ),
             ],
           ),
+          if (canToss) ...[
+            const SizedBox(height: 10),
+            _WeaponBar(c: c),
+          ],
           if (c.hint != null && canToss) ...[
             const SizedBox(height: 10),
             _HintCard(text: c.hint!),
@@ -968,6 +1016,8 @@ class _BigToss extends StatelessWidget {
           ),
         ],
       ),
+      ),
+      )),
       ),
     );
   }
@@ -1210,6 +1260,130 @@ class _StarBurst extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Bir kez kullanılabilen silahlar.
+class _WeaponBar extends StatelessWidget {
+  final GameController c;
+  const _WeaponBar({required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final s in Silah.values)
+          _WeaponChip(
+            s: s,
+            used: c.me.usedWeapons.contains(s),
+            active: s == Silah.kalkan && c.me.shielded,
+            onTap: () => c.startAim(s),
+          ),
+      ],
+    );
+  }
+}
+
+class _WeaponChip extends StatelessWidget {
+  final Silah s;
+  final bool used;
+  final bool active;
+  final VoidCallback onTap;
+  const _WeaponChip(
+      {required this.s,
+      required this.used,
+      required this.active,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final on = !used;
+    return GestureDetector(
+      onTap: on ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? const Color(0xFF1E88E5).withAlpha(90)
+              : (on ? Night.wood : Colors.black.withAlpha(80)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+                ? const Color(0xFF64B5F6)
+                : (on ? Night.ember : Colors.white24),
+            width: 1.5,
+          ),
+          boxShadow: on
+              ? const [BoxShadow(color: Night.ember, blurRadius: 8)]
+              : const [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(s.emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 4),
+            Text(
+              active ? 'Açık' : s.label,
+              style: TextStyle(
+                color: on || active ? Night.text : Night.dim,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                decoration:
+                    used && !active ? TextDecoration.lineThrough : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bomba ya da mızrak isabetinde kısa patlama.
+class _Blast extends StatelessWidget {
+  final bool spear;
+  const _Blast({super.key, this.spear = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 900),
+      builder: (context, v, _) {
+        if (v >= 1) return const SizedBox.shrink();
+        final grow = Curves.easeOut.transform(v);
+        return Opacity(
+          opacity: (1 - v).clamp(0.0, 1.0),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Transform.scale(
+                scale: 0.3 + grow,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [
+                      Colors.white,
+                      spear ? const Color(0xFF64B5F6) : Night.gold,
+                      (spear ? const Color(0xFF1E88E5) : Night.ember)
+                          .withAlpha(0),
+                    ], stops: const [0, 0.35, 1]),
+                  ),
+                ),
+              ),
+              FittedBox(
+                child: Text(spear ? '⚡' : '💥',
+                    style: const TextStyle(fontSize: 28)),
+              ),
+            ],
           ),
         );
       },

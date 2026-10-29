@@ -109,4 +109,55 @@ class Bot {
     }
     return s;
   }
+
+  /// Bot bu tur bir silah kullanmalı mı? (silah, hedef kare) ya da null.
+  static (Silah, int)? chooseWeapon(
+      Board b, List<Player> players, int me, int round, Random r) {
+    final p = players[me];
+    final level = p.level;
+
+    // Kalkan: başkent tehlikedeyse.
+    if (!p.usedWeapons.contains(Silah.kalkan) &&
+        level != BotLevel.kolay &&
+        Rules.distanceToEnemy(b, me) <= 1 &&
+        Rules.capitalDepth(b, me, p.capital) <= 1) {
+      return (Silah.kalkan, -1);
+    }
+    if (round < 3) return null;
+
+    if (level == BotLevel.kolay) {
+      if (p.usedWeapons.contains(Silah.bomba) || r.nextDouble() > 0.12) {
+        return null;
+      }
+      final t = Rules.bombTargets(b, players, me).toList();
+      if (t.isEmpty) return null;
+      return (Silah.bomba, t[r.nextInt(t.length)]);
+    }
+
+    (Silah, int)? best;
+    var bestGain = 0;
+    for (final w in [Silah.bomba, Silah.mizrak]) {
+      if (p.usedWeapons.contains(w)) continue;
+      final targets = w == Silah.bomba
+          ? Rules.bombTargets(b, players, me)
+          : Rules.spearTargets(b, players, me);
+      for (final t in targets) {
+        final cells = w == Silah.bomba
+            ? Rules.bombCells(b, players, me, t)
+            : Rules.spearCells(b, players, me, t);
+        if (cells.length < 3) continue;
+        final sim = b.copy();
+        final res = Rules.removeCells(sim, players, cells);
+        final gain = cells.length + res.dropped.length;
+        if (gain > bestGain) {
+          bestGain = gain;
+          best = (w, t);
+        }
+      }
+    }
+    final need = level == BotLevel.zor ? 6 : 8;
+    if (best == null || bestGain < need) return null;
+    if (level == BotLevel.orta && r.nextDouble() < 0.4) return null;
+    return best;
+  }
 }

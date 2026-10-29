@@ -230,4 +230,55 @@ void main() {
     b.hiddenStar = b.idx(b.xOf(cap), b.yOf(cap) - 4);
     expect(Rules.starHint(b, 0, cap), contains('Yanıyorsun'));
   });
+
+  test('bomba artı şeklinde 5 kare siler, başkente dokunmaz', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps, Random(1));
+    final cap = ps[1].capital;
+    final t = cap + 1; // başkentin sağı: artının içinde başkent var
+    final cells = Rules.bombCells(b, ps, 0, t);
+    expect(cells.contains(cap), isFalse, reason: 'başkent korunur');
+    expect(cells.length, 4);
+    // Ülkenin içinde başkentten uzak bir hedef: tam 5 kare.
+    final t2 = b.idx(b.xOf(cap) + 1, b.yOf(cap) + 1);
+    expect(Rules.bombCells(b, ps, 0, t2).length, 5);
+    final before = b.count(1);
+    Rules.removeCells(b, ps, Rules.bombCells(b, ps, 0, t2));
+    expect(b.count(1), lessThanOrEqualTo(before - 5));
+    expect(b.cells[cap], 1);
+  });
+
+  test('mızrak sadece düz hizadan, 5 kare', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps, Random(1));
+    // Başta rakip çok uzakta: mızrak hedefi yok.
+    expect(Rules.spearTargets(b, ps, 0), isEmpty);
+    // Oyuncu 0 rakibin altına 3 kare yaklaşsın.
+    final cap1 = ps[1].capital;
+    final x = b.xOf(cap1) + 1;
+    final bottom1 = b.yOf(cap1) + 2;
+    b.cells[b.idx(x, bottom1 + 4)] = 0; // arada 3 boş kare
+    final t = b.idx(x, bottom1);
+    expect(Rules.spearDir(b, 0, t), (0, -1));
+    final cells = Rules.spearCells(b, ps, 0, t);
+    // Yukarı doğru rakibin 5 karesi.
+    expect(cells.length, 5);
+    expect(cells.every((i) => b.xOf(i) == x), isTrue);
+  });
+
+  test('kalkanlı ülke kesilemez ve vurulamaz', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps, Random(1));
+    final cap1 = ps[1].capital;
+    final x = b.xOf(cap1);
+    final bottom1 = b.yOf(cap1) + 2;
+    for (var y = bottom1 + 1; y < b.yOf(ps[0].capital) - 2; y++) {
+      b.cells[b.idx(x, y)] = 0;
+    }
+    expect(Rules.validNext(b, ps, 0, []).any((i) => b.cells[i] == 1), isTrue);
+    ps[1].shielded = true;
+    expect(Rules.validNext(b, ps, 0, []).any((i) => b.cells[i] == 1), isFalse);
+    expect(Rules.bombTargets(b, ps, 0), isEmpty);
+    expect(Rules.spearTargets(b, ps, 0), isEmpty);
+  });
 }

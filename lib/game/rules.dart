@@ -140,6 +140,8 @@ class Rules {
       }
       players[p].capital = b.idx(cx, cy);
       players[p].alive = true;
+      players[p].usedWeapons.clear();
+      players[p].shielded = false;
     }
     _hideStar(b, rng ?? Random());
     return b;
@@ -232,7 +234,7 @@ class Rules {
     final o = b.cells[i];
     if (o < 0 || o == me || sel.contains(i)) return false;
     if (victim != null && o != victim) return false;
-    if (!players[o].alive) return false;
+    if (!players[o].alive || players[o].shielded) return false;
     var touches = false;
     for (final n in b.neighbors(i)) {
       if (b.cells[n] == me || sel.contains(n)) {
@@ -383,5 +385,99 @@ class Rules {
       depth++;
     }
     return depth;
+  }
+
+  // ---------------- Silahlar ----------------
+
+  /// Silahın vurabileceği rakip kare mi? (başkent ve kalkanlılar hariç)
+  static bool _hittable(Board b, List<Player> players, int me, int i) {
+    final o = b.cells[i];
+    if (o < 0 || o == me) return false;
+    final p = players[o];
+    if (!p.alive || p.shielded) return false;
+    return i != p.capital;
+  }
+
+  static List<int> _plus(Board b, int c) => [c, ...b.neighbors(c)];
+
+  /// Bomba: rakip ülkede her yere atılabilir.
+  static Set<int> bombTargets(Board b, List<Player> players, int me) => {
+        for (var i = 0; i < b.cells.length; i++)
+          if (_hittable(b, players, me, i)) i,
+      };
+
+  /// Bombanın vuracağı kareler: artı (+) şeklinde 5 kare.
+  static List<int> bombCells(Board b, List<Player> players, int me, int c) =>
+      _plus(b, c).where((i) => _hittable(b, players, me, i)).toList();
+
+  static const _dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+  /// Mızrak için yön: hedeften geriye düz giderken en fazla 6 adımda
+  /// kendi toprağına ulaşılan yön. Yoksa null.
+  static (int, int)? spearDir(Board b, int me, int t) {
+    for (final d in _dirs) {
+      var x = b.xOf(t), y = b.yOf(t);
+      for (var k = 1; k <= 6; k++) {
+        x -= d.$1;
+        y -= d.$2;
+        if (x < 0 || y < 0 || x >= b.w || y >= b.h) break;
+        if (b.cells[b.idx(x, y)] == me) return d;
+      }
+    }
+    return null;
+  }
+
+  static Set<int> spearTargets(Board b, List<Player> players, int me) => {
+        for (var i = 0; i < b.cells.length; i++)
+          if (_hittable(b, players, me, i) && spearDir(b, me, i) != null) i,
+      };
+
+  /// Mızrağın vuracağı kareler: hedeften ileri düz 5 kare.
+  static List<int> spearCells(Board b, List<Player> players, int me, int t) {
+    final d = spearDir(b, me, t);
+    if (d == null) return const [];
+    final out = <int>[];
+    var x = b.xOf(t), y = b.yOf(t);
+    for (var k = 0; k < 5; k++) {
+      if (x < 0 || y < 0 || x >= b.w || y >= b.h) break;
+      final i = b.idx(x, y);
+      if (_hittable(b, players, me, i)) out.add(i);
+      x += d.$1;
+      y += d.$2;
+    }
+    return out;
+  }
+
+  /// Kareleri siler; başkente bağlantısı kopan parçalar da düşer.
+  /// Başkentler silahlarla alınamaz, bu yüzden kimse elenmez.
+  static MoveResult removeCells(Board b, List<Player> players, List<int> cells) {
+    final victims = <int>{};
+    for (final i in cells) {
+      if (b.cells[i] >= 0) victims.add(b.cells[i]);
+      b.cells[i] = -1;
+    }
+    final dropped = <int>[];
+    for (final v in victims) {
+      final cap = players[v].capital;
+      final keep = <int>{cap};
+      final queue = <int>[cap];
+      while (queue.isNotEmpty) {
+        final c = queue.removeLast();
+        for (final n in b.neighbors(c)) {
+          if (b.cells[n] == v && keep.add(n)) queue.add(n);
+        }
+      }
+      for (var i = 0; i < b.cells.length; i++) {
+        if (b.cells[i] == v && !keep.contains(i)) {
+          b.cells[i] = -1;
+          dropped.add(i);
+        }
+      }
+    }
+    return MoveResult(
+      kind: MoveKind.kes,
+      victim: victims.isEmpty ? null : victims.first,
+      dropped: dropped,
+    );
   }
 }

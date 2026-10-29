@@ -30,6 +30,30 @@ extension MatchFaceInfo on MatchFace {
 
 enum BotLevel { kolay, orta, zor }
 
+/// Oyun başına bir kez kullanılabilen özel silahlar.
+enum Silah { bomba, mizrak, kalkan }
+
+extension SilahInfo on Silah {
+  String get label => switch (this) {
+        Silah.bomba => 'Bomba',
+        Silah.mizrak => 'Mızrak',
+        Silah.kalkan => 'Kalkan',
+      };
+
+  String get emoji => switch (this) {
+        Silah.bomba => '💣',
+        Silah.mizrak => '🔱',
+        Silah.kalkan => '🛡️',
+      };
+
+  String get aimText => switch (this) {
+        Silah.bomba => 'Bombayı atacağın rakip kareye dokun',
+        Silah.mizrak =>
+          'Mızrağı saplayacağın rakip kareye dokun (ülkenden düz bir hatta)',
+        Silah.kalkan => '',
+      };
+}
+
 extension BotLevelInfo on BotLevel {
   String get label {
     switch (this) {
@@ -51,6 +75,12 @@ class Player {
   final BotLevel level;
   int capital;
   bool alive = true;
+
+  /// Bu oyunda kullanılmış silahlar (her biri bir kez).
+  final Set<Silah> usedWeapons = {};
+
+  /// Kalkan açık: bir sonraki turuna kadar kesilemez, bombalanamaz.
+  bool shielded = false;
 
   Player({
     required this.id,

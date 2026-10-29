@@ -205,6 +205,32 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('silahlar: bomba bir kez, kalkan açılır, sonra kibrit', (tester) async {
+    final c = GameController(makePlayers(1), random: Random(5));
+    expect(c.phase, Phase.atis);
+    // Rakip uzaktayken mızrak hedefi yok: kullanılmaz.
+    c.startAim(Silah.mizrak);
+    expect(c.phase, Phase.atis);
+    expect(c.me.usedWeapons, isEmpty);
+    // Bomba: hedef aşaması, sonra ateş.
+    c.startAim(Silah.bomba);
+    expect(c.phase, Phase.hedef);
+    final before = c.board.count(1);
+    final t = c.valid.firstWhere((i) => i != c.players[1].capital);
+    c.tapCell(t);
+    expect(c.board.count(1), lessThan(before));
+    expect(c.me.usedWeapons, contains(Silah.bomba));
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(c.phase, Phase.atis, reason: 'silah ekstra: hâlâ kibrit atılır');
+    c.startAim(Silah.bomba);
+    expect(c.phase, Phase.atis, reason: 'bomba ikinci kez kullanılamaz');
+    // Kalkan.
+    c.startAim(Silah.kalkan);
+    expect(c.me.shielded, isTrue);
+    c.dispose();
+    await tester.pump(const Duration(seconds: 5));
+  });
+
   testWidgets('tam oyun: sen + 3 bot sonuna kadar oynanır', (tester) async {
     final r = Random(42);
     final c = GameController(makePlayers(3), random: Random(7));

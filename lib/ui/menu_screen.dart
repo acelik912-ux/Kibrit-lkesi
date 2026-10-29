@@ -195,6 +195,9 @@ class _HowToPlay extends StatelessWidget {
       'Son kalan ya da 30. turda en büyük ülke kazanır.',
       'Sıralamana göre yıldız kazanırsın: 1. ⭐⭐⭐, 2. ⭐⭐, 3. ⭐ '
           '(sonuncu yıldız alamaz). Zor botları yenersen +1 bonus!',
+      'Silahların var, her biri oyunda bir kez: 💣 Bomba (her yere, 5 kare), '
+          '🔱 Mızrak (ülkenden düz, 5 kare), 🛡️ Kalkan (bir tur dokunulmaz). '
+          'Silah turunu harcamaz; bayrak silahla alınamaz.',
       'Defterde gizli bir yıldız saklı! Ülkenle o kareye ulaşırsan '
           'çevresi senin olur ve +1 yıldız kazanırsın. Arada ipucu gelir.',
       'Yıldız biriktir, rütbe atla: Acemi Çizer → Kalem Ustası → … → '
