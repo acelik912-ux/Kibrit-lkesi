@@ -180,4 +180,54 @@ void main() {
     expect(v2.contains(b.idx(x, bottom1 - 1)), isTrue);
     expect(v2.contains(b.idx(x - 2, bottom1)), isFalse);
   });
+
+  test('gizli yıldız ülkelerden uzağa saklanır', () {
+    for (var seed = 0; seed < 20; seed++) {
+      for (var n = 2; n <= 4; n++) {
+        final ps = makePlayers(n);
+        final b = Rules.setup(ps, Random(seed));
+        final s = b.hiddenStar;
+        expect(s, greaterThanOrEqualTo(0));
+        expect(b.cells[s], -1);
+        for (var i = 0; i < b.cells.length; i++) {
+          if (b.cells[i] < 0) continue;
+          final d = (b.xOf(i) - b.xOf(s)).abs() + (b.yOf(i) - b.yOf(s)).abs();
+          expect(d, greaterThanOrEqualTo(5));
+        }
+        // Botlar kopyada yıldızı göremez.
+        expect(b.copy().hiddenStar, -1);
+      }
+    }
+  });
+
+  test('gizli yıldızı bulan çevresini kazanır', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps, Random(1));
+    final s = b.hiddenStar;
+    // Oyuncu 0'ın toprağını yıldızın hemen yanına kadar getir.
+    final left = s - 1;
+    b.cells[left] = 0;
+    final before = b.count(0);
+    final res = Rules.apply(b, ps, 0, [s]);
+    expect(res.starFound, isTrue);
+    expect(b.hiddenStar, -1);
+    expect(b.foundStarCell, s);
+    expect(b.cells[s], 0);
+    expect(res.bonus.length, 7); // 3x3 içindeki diğer boş kareler
+    expect(b.count(0), before + 1 + 7);
+  });
+
+  test('ipucu yönü ve sıcaklığı söyler', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps, Random(2));
+    final cap = ps[0].capital;
+    // Yıldızı başkentin sağ üstüne, uzağa koy.
+    b.hiddenStar = b.idx(b.xOf(cap) + 6, b.yOf(cap) - 8);
+    final h = Rules.starHint(b, 0, cap)!;
+    expect(h, contains('sağ üstünde'));
+    expect(h, contains('Soğuk'));
+    // Hemen yanına koy.
+    b.hiddenStar = b.idx(b.xOf(cap), b.yOf(cap) - 4);
+    expect(Rules.starHint(b, 0, cap), contains('Yanıyorsun'));
+  });
 }

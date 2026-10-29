@@ -245,6 +245,19 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 ..._flags(size),
+                if (c.starEventId > 0)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: _StarBurst(
+                        key: ValueKey(c.starEventId),
+                        finder: c.starFinder,
+                        text: c.players[c.starFinder].isBot
+                            ? '${c.players[c.starFinder].name} gizli yıldızı buldu!'
+                            : 'Gizli yıldızı buldun!',
+                        bonus: c.starBonusCount,
+                      ),
+                    ),
+                  ),
                 if (c.phase == Phase.bitti)
                   Positioned.fill(
                     child: _GameOverBanner(
@@ -521,7 +534,9 @@ class _GameOverBanner extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final w = c.winner;
     final won = w != null && w >= 0;
-    final baseStars = c.stars - (c.bonusStar ? 1 : 0);
+    final baseStars = c.stars -
+        (c.bonusStar ? 1 : 0) -
+        (c.foundHiddenStar ? 1 : 0);
     return Container(
       color: Colors.black.withAlpha(150),
       alignment: Alignment.center,
@@ -610,12 +625,18 @@ class _GameOverBanner extends StatelessWidget {
                         const SizedBox(width: 6),
                         const _PopStar(filled: true, delayIndex: 3, bonus: true),
                       ],
+                      if (c.foundHiddenStar) ...[
+                        const SizedBox(width: 6),
+                        const _PopStar(filled: true, delayIndex: 4, bonus: true),
+                      ],
                     ],
                   ),
                   Text(
                     c.stars == 0
                         ? 'Bu sefer yıldız yok'
-                        : '+${c.stars} yıldız${c.bonusStar ? ' (Zor bonusu dahil)' : ''}',
+                        : '+${c.stars} yıldız'
+                            '${c.bonusStar ? ' · Zor bonusu' : ''}'
+                            '${c.foundHiddenStar ? ' · Gizli yıldız' : ''}',
                     style: t.titleMedium?.copyWith(color: Night.gold),
                   ),
                   const Divider(color: Colors.white24, height: 14),
@@ -872,6 +893,10 @@ class _BigToss extends StatelessWidget {
               ),
             ],
           ),
+          if (c.hint != null && canToss) ...[
+            const SizedBox(height: 10),
+            _HintCard(text: c.hint!),
+          ],
           const SizedBox(height: 12),
           ShakeBox(
             enabled: canToss,
@@ -1070,6 +1095,124 @@ class _TapHintState extends State<_TapHint>
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Gizli yıldız ipucu kartı.
+class _HintCard extends StatelessWidget {
+  final String text;
+  const _HintCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutBack,
+      builder: (context, v, child) => Transform.scale(scale: v, child: child),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 340),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Night.wood,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Night.gold, width: 1.5),
+          boxShadow: const [BoxShadow(color: Night.ember, blurRadius: 14)],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lightbulb_rounded, color: Night.gold),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'İpucu: $text',
+                style: const TextStyle(
+                    color: Night.text, fontSize: 15, height: 1.25),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Gizli yıldız bulununca defterin ortasında patlayan kutlama.
+class _StarBurst extends StatelessWidget {
+  final int finder;
+  final String text;
+  final int bonus;
+  const _StarBurst(
+      {super.key,
+      required this.finder,
+      required this.text,
+      required this.bonus});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 2600),
+      builder: (context, v, _) {
+        if (v >= 1) return const SizedBox.shrink();
+        final appear = Curves.elasticOut.transform((v / 0.3).clamp(0.0, 1.0));
+        final fade = v < 0.8 ? 1.0 : (1 - (v - 0.8) / 0.2);
+        return Opacity(
+          opacity: fade.clamp(0.0, 1.0),
+          child: Container(
+            color: Colors.black.withAlpha((110 * fade).round()),
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Transform.rotate(
+                  angle: v * 6.3,
+                  child: Transform.scale(
+                    scale: appear,
+                    child: const Icon(Icons.star_rounded,
+                        size: 130,
+                        color: Night.gold,
+                        shadows: [
+                          Shadow(color: Night.ember, blurRadius: 40),
+                          Shadow(color: Colors.white, blurRadius: 12),
+                        ]),
+                  ),
+                ),
+                Transform.scale(
+                  scale: appear,
+                  child: Column(
+                    children: [
+                      CharacterAvatar(id: finder, size: 48),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(text,
+                              style: const TextStyle(
+                                color: Night.gold,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                shadows: [
+                                  Shadow(color: Night.ember, blurRadius: 14)
+                                ],
+                              )),
+                        ),
+                      ),
+                      Text('+$bonus kare',
+                          style: const TextStyle(
+                              color: Night.text,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

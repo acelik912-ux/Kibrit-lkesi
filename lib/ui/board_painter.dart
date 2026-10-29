@@ -94,6 +94,31 @@ class BoardPainter extends CustomPainter {
 
     // Başkentler: bayrak görseli tahtanın üstüne ayrıca konur.
 
+    // Bulunmuş gizli yıldızın yeri.
+    if (board.foundStarCell >= 0) {
+      final r = cellRect(board.foundStarCell);
+      final path = Path();
+      final rad = min(cw, ch) * 0.46;
+      for (var k = 0; k < 10; k++) {
+        final rr = k.isEven ? rad : rad * 0.45;
+        final a = -pi / 2 + k * pi / 5;
+        final p = Offset(r.center.dx + cos(a) * rr, r.center.dy + sin(a) * rr);
+        if (k == 0) {
+          path.moveTo(p.dx, p.dy);
+        } else {
+          path.lineTo(p.dx, p.dy);
+        }
+      }
+      path.close();
+      canvas.drawPath(path, Paint()..color = const Color(0xFFFFC94A));
+      canvas.drawPath(
+          path,
+          Paint()
+            ..color = const Color(0xFFB7791F)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2);
+    }
+
     // Seçilebilir kareler: küçük kurşun kalem noktası.
     final dot = Paint()..color = Paper.pencil.withAlpha(150);
     for (final i in valid) {

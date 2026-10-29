@@ -51,10 +51,21 @@ class GameController extends ChangeNotifier {
 
   /// Zor seviyede birinci olunca verilen ek yıldız.
   bool bonusStar = false;
+
+  /// Gizli yıldızı sen buldun mu? (oyun sonunda +1 yıldız)
+  bool foundHiddenStar = false;
+
+  /// Gizli yıldız bulununca artar; ekrandaki kutlama bunu dinler.
+  int starEventId = 0;
+  int starFinder = -1;
+  int starBonusCount = 0;
+
+  /// Bu tur için ipucu (yoksa null).
+  String? hint;
   bool _disposed = false;
 
   GameController(this.players, {Random? random}) : rng = random ?? Random() {
-    board = Rules.setup(players);
+    board = Rules.setup(players, rng);
     _startTurn();
   }
 
@@ -81,12 +92,18 @@ class GameController extends ChangeNotifier {
     valid = {};
     face = null;
     shakes = 0;
+    hint = null;
     if (me.isBot) {
       message = '${me.name} kibrit kutusunu atıyor…';
       _toss();
     } else {
       phase = Phase.atis;
       message = 'Sıra sende: kutuyu salla, sonra at';
+      // İpucu: her 3 turda bir (2., 5., 8. …) ve arada bir sürpriz.
+      if (board.hiddenStar >= 0 &&
+          (round % 3 == 2 || (round > 1 && rng.nextDouble() < 0.15))) {
+        hint = Rules.starHint(board, current, me.capital);
+      }
       _notify();
     }
   }
@@ -230,6 +247,12 @@ class GameController extends ChangeNotifier {
     final mover = me;
     final res = Rules.apply(board, players, current, selection);
     lastDropped = res.dropped;
+    if (res.starFound) {
+      starFinder = mover.id;
+      starBonusCount = res.bonus.length;
+      starEventId++;
+      if (!mover.isBot) foundHiddenStar = true;
+    }
     final verb = res.kind == MoveKind.ekle ? 'ekledi' : 'kesti';
     final who = mover.isBot ? mover.name : 'Sen';
     final verbYou = res.kind == MoveKind.ekle ? 'ekledin' : 'kestin';
@@ -252,15 +275,20 @@ class GameController extends ChangeNotifier {
         }
       }
     }
+    if (res.starFound) {
+      message = mover.isBot
+          ? '${mover.name} gizli yıldızı buldu! +${res.bonus.length} kare'
+          : 'Gizli yıldızı buldun! +${res.bonus.length} kare, +1 yıldız';
+    }
     selection = [];
     valid = {};
     phase = Phase.botOynuyor; // geçiş anında dokunmayı kapat
     _notify();
-    _afterMove();
+    _afterMove(extra: res.starFound ? 1700 : 0);
   }
 
-  Future<void> _afterMove() async {
-    await _wait(const Duration(milliseconds: 900));
+  Future<void> _afterMove({int extra = 0}) async {
+    await _wait(Duration(milliseconds: 900 + extra));
     if (_disposed) return;
     _next();
   }
@@ -323,6 +351,7 @@ class GameController extends ChangeNotifier {
     bonusStar = myPlace == 1 &&
         players.where((p) => p.isBot).every((p) => p.level == BotLevel.zor);
     if (bonusStar) stars++;
+    if (foundHiddenStar) stars++;
     winner = w;
     phase = Phase.bitti;
     if (w == -1) {

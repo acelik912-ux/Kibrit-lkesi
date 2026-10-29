@@ -8,10 +8,21 @@ class Board {
   final int h;
   final List<int> cells;
 
+  /// Gizli yıldızın saklandığı kare (-1 = yok ya da bulundu).
+  int hiddenStar = -1;
+
+  /// Bulunan yıldızın yeri ve bulan oyuncu (çizim için).
+  int foundStarCell = -1;
+  int foundStarBy = -1;
+
   Board(this.w, this.h) : cells = List<int>.filled(w * h, -1);
   Board._(this.w, this.h, this.cells);
 
-  Board copy() => Board._(w, h, List<int>.from(cells));
+  /// Kopya: botlar bununla deneme yapar. Gizli yıldız kopyaya geçmez,
+  /// yani botlar yerini bilemez.
+  Board copy() => Board._(w, h, List<int>.from(cells))
+    ..foundStarCell = foundStarCell
+    ..foundStarBy = foundStarBy;
 
   int idx(int x, int y) => y * w + x;
   int xOf(int i) => i % w;
@@ -48,11 +59,17 @@ class MoveResult {
   /// Başkenti kesildiği için oyundan çıkan oyuncu.
   final bool victimEliminated;
 
+  /// Gizli yıldız bu hamlede bulundu mu; bonus olarak kazanılan kareler.
+  final bool starFound;
+  final List<int> bonus;
+
   const MoveResult({
     required this.kind,
     this.victim,
     this.dropped = const [],
     this.victimEliminated = false,
+    this.starFound = false,
+    this.bonus = const [],
   });
 }
 
@@ -75,7 +92,10 @@ class Rules {
   }
 
   /// Oyuncu sayısına göre defter boyutu ve başlangıç ülkeleri.
-  static Board setup(List<Player> players) {
+  /// Gizli yıldızı bulana verilen bonus alanın yarıçapı (3x3).
+  static const int starRadius = 1;
+
+  static Board setup(List<Player> players, [Random? rng]) {
     final n = players.length;
     final int w;
     final int h;
@@ -121,7 +141,64 @@ class Rules {
       players[p].capital = b.idx(cx, cy);
       players[p].alive = true;
     }
+    _hideStar(b, rng ?? Random());
     return b;
+  }
+
+  /// Yıldızı ülkelerden uzak, kenara yapışık olmayan bir boş kareye sakla.
+  static void _hideStar(Board b, Random r) {
+    final cand = <int>[];
+    for (var i = 0; i < b.cells.length; i++) {
+      final x = b.xOf(i), y = b.yOf(i);
+      if (x < 1 || y < 1 || x > b.w - 2 || y > b.h - 2) continue;
+      if (b.cells[i] >= 0) continue;
+      var near = false;
+      for (var j = 0; j < b.cells.length && !near; j++) {
+        if (b.cells[j] < 0) continue;
+        final d = (b.xOf(j) - x).abs() + (b.yOf(j) - y).abs();
+        if (d < 5) near = true;
+      }
+      if (!near) cand.add(i);
+    }
+    if (cand.isNotEmpty) b.hiddenStar = cand[r.nextInt(cand.length)];
+  }
+
+  /// İpucu: yıldız ülkene göre ne tarafta, ne kadar yakın?
+  static String? starHint(Board b, int me, int capital) {
+    final s = b.hiddenStar;
+    if (s < 0 || capital < 0) return null;
+    // En yakın kendi karene uzaklık.
+    var d = 999;
+    for (var i = 0; i < b.cells.length; i++) {
+      if (b.cells[i] != me) continue;
+      final dd = (b.xOf(i) - b.xOf(s)).abs() + (b.yOf(i) - b.yOf(s)).abs();
+      if (dd < d) d = dd;
+    }
+    final dx = b.xOf(s) - b.xOf(capital);
+    final dy = b.yOf(s) - b.yOf(capital);
+    final dikey = dy < -1 ? 'üst' : (dy > 1 ? 'alt' : '');
+    final yatay = dx < -1 ? 'sol' : (dx > 1 ? 'sağ' : '');
+    final String yon;
+    if (dikey.isNotEmpty && yatay.isNotEmpty) {
+      yon = '$yatay ${dikey == 'üst' ? 'üstünde' : 'altında'}';
+    } else if (dikey.isNotEmpty) {
+      yon = dikey == 'üst' ? 'üstünde' : 'altında';
+    } else if (yatay.isNotEmpty) {
+      yon = yatay == 'sol' ? 'solunda' : 'sağında';
+    } else {
+      yon = 'çok yakınında';
+    }
+    final String isi;
+    if (d <= 2) {
+      isi = 'Yanıyorsun! 🔥';
+    } else if (d <= 4) {
+      isi = 'Sıcak!';
+    } else if (d <= 7) {
+      isi = 'Ilık.';
+    } else {
+      isi = 'Soğuk ❄️';
+    }
+    return 'Gizli yıldız ülkenin $yon. $isi';
   }
 
   /// Bir kare, sahibinin sınırında mı? (Defter kenarı sınır sayılmaz.)
@@ -224,6 +301,27 @@ class Rules {
     if (kind == MoveKind.ekle) {
       for (final i in sel) {
         b.cells[i] = me;
+      }
+      final star = b.hiddenStar;
+      if (star >= 0 && sel.contains(star)) {
+        // Gizli yıldız bulundu: çevresindeki boş kareler bonus.
+        final bonus = <int>[];
+        final sx = b.xOf(star), sy = b.yOf(star);
+        for (var dy = -starRadius; dy <= starRadius; dy++) {
+          for (var dx = -starRadius; dx <= starRadius; dx++) {
+            final x = sx + dx, y = sy + dy;
+            if (x < 0 || y < 0 || x >= b.w || y >= b.h) continue;
+            final i = b.idx(x, y);
+            if (b.cells[i] < 0) {
+              b.cells[i] = me;
+              bonus.add(i);
+            }
+          }
+        }
+        b.hiddenStar = -1;
+        b.foundStarCell = star;
+        b.foundStarBy = me;
+        return MoveResult(kind: MoveKind.ekle, starFound: true, bonus: bonus);
       }
       return const MoveResult(kind: MoveKind.ekle);
     }
