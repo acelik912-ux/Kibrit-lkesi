@@ -358,27 +358,48 @@ class _BottomPanel extends StatelessWidget {
                 enabled: canToss,
                 onShake: c.shake,
                 onRelease: c.tossByHuman,
-                child: MatchboxView(
-                  key: const ValueKey('kibrit'),
-                  face: c.face,
-                  tossId: c.tossId,
-                  duration: GameController.tossDuration,
-                  onTap: canToss ? c.tossByHuman : null,
-                ),
-              ),
-              SizedBox(
-                height: 22,
-                child: Text(
-                  showResult
-                      ? '${c.face!.label} = ${c.need}'
-                      : (canToss && c.shakes > 0 ? 'Salla: ${c.shakes}' : ''),
-                  style: t.titleMedium?.copyWith(
-                    color: Sprites.glowOf(c.current),
-                    shadows: [
-                      Shadow(color: Sprites.glowOf(c.current), blurRadius: 8),
+                child: SizedBox(
+                  width: 124,
+                  height: 116,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      MatchboxView(
+                        key: const ValueKey('kibrit'),
+                        face: c.face,
+                        tossId: c.tossId,
+                        duration: GameController.tossDuration,
+                        onTap: canToss ? c.tossByHuman : null,
+                      ),
+                      // Sallama sayacı
+                      if (canToss && c.shakes > 0)
+                        Positioned(
+                          top: 0,
+                          right: 2,
+                          child: _ShakeCounter(count: c.shakes),
+                        ),
                     ],
                   ),
                 ),
+              ),
+              SizedBox(
+                height: 24,
+                child: showResult
+                    ? Text(
+                        '${c.face!.label} = ${c.need}',
+                        style: t.titleMedium?.copyWith(
+                          color: Sprites.glowOf(c.current),
+                          shadows: [
+                            Shadow(
+                                color: Sprites.glowOf(c.current),
+                                blurRadius: 8),
+                          ],
+                        ),
+                      )
+                    : (canToss && c.shakes == 0
+                        ? const _ShakeHint()
+                        : const SizedBox.shrink()),
               ),
             ],
           ),
@@ -722,6 +743,82 @@ class RankBar extends StatelessWidget {
                 style: t.bodySmall?.copyWith(color: Night.dim)),
           ),
       ],
+    );
+  }
+}
+
+/// Kutu sallanırken köşede büyüyen sayaç.
+class _ShakeCounter extends StatelessWidget {
+  final int count;
+  const _ShakeCounter({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(count),
+      tween: Tween(begin: 1.6, end: 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      builder: (context, v, child) => Transform.scale(scale: v, child: child),
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Night.gold,
+          boxShadow: const [BoxShadow(color: Night.ember, blurRadius: 12)],
+        ),
+        child: Text(
+          '$count',
+          style: const TextStyle(
+            color: Night.deep,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "⟵ salla ⟶" diye sağa sola kayan ipucu.
+class _ShakeHint extends StatefulWidget {
+  const _ShakeHint();
+
+  @override
+  State<_ShakeHint> createState() => _ShakeHintState();
+}
+
+class _ShakeHintState extends State<_ShakeHint>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _a = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 700))
+    ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _a,
+      builder: (context, child) => Transform.translate(
+        offset: Offset((Curves.easeInOut.transform(_a.value) - 0.5) * 14, 0),
+        child: child,
+      ),
+      child: const Text(
+        '⟵ salla ⟶',
+        style: TextStyle(
+          color: Night.gold,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          shadows: [Shadow(color: Night.ember, blurRadius: 8)],
+        ),
+      ),
     );
   }
 }

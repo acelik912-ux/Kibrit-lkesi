@@ -167,7 +167,8 @@ void main() {
     final dynamic st = tester.state(find.byType(GameScreen));
     final GameController gc = st.controller;
     expect(gc.shakes, greaterThanOrEqualTo(6));
-    expect(find.textContaining('Salla:'), findsOneWidget);
+    expect(find.text('${gc.shakes}'), findsOneWidget,
+        reason: 'sallama sayacı görünmeli');
     await g.up();
     await tester.pump(const Duration(milliseconds: 50));
     expect(gc.phase, Phase.atiliyor, reason: 'parmak kalkınca kutu atılmalı');
