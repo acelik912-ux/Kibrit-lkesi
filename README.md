@@ -6,7 +6,7 @@ Matematik defterine ülke çizip kibrit kutusu atarak oynadığımız oyunun Flu
 
 - Kibrit kutusunu at: **yatık 1**, **yan 3**, **dik 6** kare.
 - Boş karelere dokun → ülkene ekle (sınırına bitişik olmalı).
-- Rakibin sınırındaki karelere dokun → kes. Kestikçe içeri doğru ilerleyebilirsin.
+- Rakibin karelerine dokun → kes; ama sadece ülkenin rakibe değdiği yerden. Kestikçe içeri doğru ilerleyebilirsin.
 - Başkente (★) bağlantısı kopan parçalar silinir.
 - Başkent ancak tur başında sınırdaysa kesilebilir; kesilirse o ülke oyundan çıkar.
 - Son kalan ya da 30. turda en büyük ülke kazanır.

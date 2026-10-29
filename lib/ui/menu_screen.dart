@@ -188,7 +188,8 @@ class _HowToPlay extends StatelessWidget {
       'Atmadan önce kutuyu parmağınla sağa sola salla, 10\'a kadar. '
           'Doğru sayıyı tutturursan şans senden yana olur!',
       'Boş karelere dokun → ülkene ekle (sınırına bitişik olmalı).',
-      'Rakibin sınırındaki karelere dokun → kes.',
+      'Rakibin karelerine dokun → kes. Ama sadece ülkenin rakibe '
+          'değdiği yerden! Önce ülkeni rakibe doğru büyüt.',
       'Ülkesinden kopan parçalar silinir, başkente bağlı kalan yaşar.',
       'Başkent ★ ancak tur başında sınırdaysa kesilebilir; kesilirse ülke düşer.',
       'Son kalan ya da 30. turda en büyük ülke kazanır.',

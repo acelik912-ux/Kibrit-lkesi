@@ -147,21 +147,55 @@ class Rules {
     return false;
   }
 
+  /// Kesme kuralı: sadece kendi ülkenin değdiği yerden kesebilirsin.
+  /// İlk kare senin toprağına komşu olmalı; sonraki kareler senin toprağına
+  /// ya da bu turda kestiğin karelere komşu olarak içeri doğru ilerler.
   static bool _validCut(
       Board b, List<Player> players, int me, int? victim, int i, Set<int> sel) {
     final o = b.cells[i];
     if (o < 0 || o == me || sel.contains(i)) return false;
     if (victim != null && o != victim) return false;
     if (!players[o].alive) return false;
-    final border = isBorder(b, i);
-    // Başkent ancak tur başında sınırdaysa kesilebilir.
-    if (i == players[o].capital) return border;
-    if (border) return true;
+    var touches = false;
     for (final n in b.neighbors(i)) {
-      if (sel.contains(n)) return true;
+      if (b.cells[n] == me || sel.contains(n)) {
+        touches = true;
+        break;
+      }
     }
-    return false;
+    if (!touches) return false;
+    // Başkent ancak tur başında sınırdaysa kesilebilir.
+    if (i == players[o].capital) return isBorder(b, i);
+    return true;
   }
+
+  /// Bu oyuncunun toprağından en yakın rakip kareye kaç adım var.
+  /// (1 = değiyor; rakip yoksa büyük bir sayı)
+  static int distanceToEnemy(Board b, int me) {
+    final dist = List<int>.filled(b.cells.length, -1);
+    var frontier = <int>[];
+    for (var i = 0; i < b.cells.length; i++) {
+      if (b.cells[i] == me) {
+        dist[i] = 0;
+        frontier.add(i);
+      }
+    }
+    while (frontier.isNotEmpty) {
+      final next = <int>[];
+      for (final c in frontier) {
+        for (final n in b.neighbors(c)) {
+          if (dist[n] >= 0) continue;
+          dist[n] = dist[c] + 1;
+          final o = b.cells[n];
+          if (o >= 0 && o != me) return dist[n];
+          next.add(n);
+        }
+      }
+      frontier = next;
+    }
+    return 999;
+  }
+
 
   /// Seçime eklenebilecek kareler.
   static Set<int> validNext(

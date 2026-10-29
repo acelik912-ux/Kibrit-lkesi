@@ -66,8 +66,8 @@ void main() {
     final b = Rules.setup(ps);
     final cap = ps[1].capital;
     // Başkenti sınıra getir.
-    b.cells[cap - b.w] = -1;
-    b.cells[cap - 2 * b.w] = -1;
+    b.cells[cap - b.w] = 0; // oyuncu 0 başkente kadar dayandı
+    b.cells[cap - 2 * b.w] = 0;
     expect(Rules.isBorder(b, cap), isTrue);
     expect(Rules.validNext(b, ps, 0, []).contains(cap), isTrue);
     final res = Rules.apply(b, ps, 0, [cap]);
@@ -155,5 +155,29 @@ void main() {
     expect(const Progress(stars: 12).rankName, 'Kalem Ustası');
     expect(const Progress(stars: 20).progressToNext, closeTo(0.5, 0.001));
     expect(const Progress(stars: 500).nextRank, isNull);
+  });
+
+  test('kesme sadece ülkenin değdiği yerden yapılır', () {
+    final ps = makePlayers(2);
+    final b = Rules.setup(ps);
+    // Başlangıçta ülkeler birbirine uzak: hiç kesilecek kare yok.
+    final start = Rules.validNext(b, ps, 0, []);
+    expect(start.every((i) => b.cells[i] < 0), isTrue);
+    // Oyuncu 0, rakibin alt sınırına kadar bir köprü kursun.
+    final cap1 = ps[1].capital;
+    final x = b.xOf(cap1);
+    final bottom1 = b.yOf(cap1) + 2; // rakibin en alt satırı
+    final top0 = b.yOf(ps[0].capital) - 2;
+    for (var y = bottom1 + 1; y < top0; y++) {
+      b.cells[b.idx(x, y)] = 0;
+    }
+    expect(Rules.distanceToEnemy(b, 0), 1);
+    final v = Rules.validNext(b, ps, 0, []);
+    final cuts = v.where((i) => b.cells[i] == 1).toList();
+    expect(cuts, [b.idx(x, bottom1)], reason: 'sadece değdiği kare');
+    // O kareyi seçince içeri doğru devam edilebilir.
+    final v2 = Rules.validNext(b, ps, 0, [b.idx(x, bottom1)]);
+    expect(v2.contains(b.idx(x, bottom1 - 1)), isTrue);
+    expect(v2.contains(b.idx(x - 2, bottom1)), isFalse);
   });
 }

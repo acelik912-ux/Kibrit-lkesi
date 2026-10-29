@@ -93,6 +93,10 @@ class Bot {
     }
     s -= myBorder * 0.25;
 
+    // Rakibe doğru ilerle: kesebilmek için sınıra dayanmak gerekir.
+    final d = Rules.distanceToEnemy(b, me);
+    if (d < 999) s -= d * 1.2;
+
     for (final p in players) {
       if (p.id == me || !p.alive) continue;
       final c = b.count(p.id);
