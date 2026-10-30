@@ -98,9 +98,9 @@ void main() {
         var turns = 0;
         var current = 0;
         while (turns < Rules.maxRounds * n) {
-          final n = Rules.roll(r);
-          final move = Bot.chooseMove(b, ps, current, n, r);
-          expect(move.length, lessThanOrEqualTo(n));
+          final roll = Rules.roll(r);
+          final move = Bot.chooseMove(b, ps, current, roll, r);
+          expect(move.length, lessThanOrEqualTo(roll));
           // Hamle kurallara uygun olmalı.
           final sel = <int>[];
           for (final c in move) {
