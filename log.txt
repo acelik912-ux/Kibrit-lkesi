@@ -1,0 +1,30 @@
+console[debug]: Injecting <script> tag. Using callback.
+console[warning]: Could not find a set of Noto fonts to display all missing characters. Please add a font asset for the missing characters. See: https://docs.flutter.dev/cookbook/design/fonts
+console[warning]: [.WebGL-0x50c001d2e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+console[warning]: [.WebGL-0x50c001d2e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+console[warning]: [.WebGL-0x50c001d2e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+console[warning]: [.WebGL-0x50c001d2e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+ekran: 1_menu
+tıklandı: Oyuna başla
+ekran: 2_oyun
+tıklandı: Kibriti at
+ekran: 3_atis_0
+defter üstü bulundu: y=148
+ekran: 4_secim_0
+onaylandı
+ekran: 5_bot_sonrasi_0
+tıklandı: Kibriti at
+ekran: 3_atis_1
+ekran: 4_secim_1
+onaylandı
+ekran: 5_bot_sonrasi_1
+tıklandı: Kibriti at
+ekran: 3_atis_2
+ekran: 4_secim_2
+onaylandı
+ekran: 5_bot_sonrasi_2
+tıklandı: Kibriti at
+ekran: 3_atis_3
+ekran: 4_secim_3
+onaylandı
+ekran: 5_bot_sonrasi_3
