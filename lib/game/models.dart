@@ -3,18 +3,11 @@ import 'package:flutter/material.dart';
 /// Kibrit kutusunun düşebileceği yüzler.
 enum MatchFace { yatik, yan, dik }
 
+/// Kibrit kutusunun 6 yüzü zar gibi 1–6 verir:
+/// geniş yüzler (yatık) 1–2, uzun kenarlar (yan) 3–4, kısa uçlar (dik) 5–6.
 extension MatchFaceInfo on MatchFace {
-  /// Bu yüz gelince kaç kare oynanır.
-  int get squares {
-    switch (this) {
-      case MatchFace.yatik:
-        return 1;
-      case MatchFace.yan:
-        return 3;
-      case MatchFace.dik:
-        return 6;
-    }
-  }
+  static MatchFace forNumber(int n) =>
+      n <= 2 ? MatchFace.yatik : (n <= 4 ? MatchFace.yan : MatchFace.dik);
 
   String get label {
     switch (this) {

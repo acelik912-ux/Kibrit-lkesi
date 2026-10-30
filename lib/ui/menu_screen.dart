@@ -184,7 +184,8 @@ class _HowToPlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     const rules = [
-      'Kibrit kutusunu at: yatık 1, yan 3, dik 6 kare.',
+      'Kibrit kutusunun 6 yüzü var: yatık 1–2, yan 3–4, dik 5–6 kare. '
+          'Dik durması nadirdir.',
       'Atmadan önce kutuyu parmağınla sağa sola salla, 10\'a kadar. '
           'Doğru sayıyı tutturursan şans senden yana olur!',
       'Boş karelere dokun → ülkene ekle (sınırına bitişik olmalı).',

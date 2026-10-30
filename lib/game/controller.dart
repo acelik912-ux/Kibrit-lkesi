@@ -79,7 +79,9 @@ class GameController extends ChangeNotifier {
   }
 
   Player get me => players[current];
-  int get need => face?.squares ?? 0;
+  /// Kibritten gelen sayı (1–6).
+  int? rolled;
+  int get need => rolled ?? 0;
   bool get humanTurn => !me.isBot;
   MoveKind? get kind => Rules.kindOf(board, selection);
 
@@ -100,6 +102,7 @@ class GameController extends ChangeNotifier {
     selection = [];
     valid = {};
     face = null;
+    rolled = null;
     shakes = 0;
     hint = null;
     aim = null;
@@ -236,7 +239,8 @@ class GameController extends ChangeNotifier {
   }
 
   Future<void> _toss({bool lucky = false}) async {
-    face = Rules.toss(rng, lucky: lucky);
+    rolled = Rules.roll(rng, lucky: lucky);
+    face = MatchFaceInfo.forNumber(rolled!);
     phase = Phase.atiliyor;
     tossId++;
     _notify();

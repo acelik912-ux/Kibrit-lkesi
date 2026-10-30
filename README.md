@@ -4,7 +4,7 @@ Matematik defterine ülke çizip kibrit kutusu atarak oynadığımız oyunun Flu
 
 ## Kurallar
 
-- Kibrit kutusunu at: **yatık 1**, **yan 3**, **dik 6** kare.
+- Kibrit kutusunun 6 yüzü zar gibi: **yatık 1–2**, **yan 3–4**, **dik 5–6** kare (dik nadir).
 - Boş karelere dokun → ülkene ekle (sınırına bitişik olmalı).
 - Rakibin karelerine dokun → kes; ama sadece ülkenin rakibe değdiği yerden. Kestikçe içeri doğru ilerleyebilirsin.
 - Başkente (★) bağlantısı kopan parçalar silinir.

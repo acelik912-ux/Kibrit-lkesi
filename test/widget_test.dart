@@ -98,9 +98,9 @@ void main() {
         var turns = 0;
         var current = 0;
         while (turns < Rules.maxRounds * n) {
-          final face = Rules.toss(r);
-          final move = Bot.chooseMove(b, ps, current, face.squares, r);
-          expect(move.length, lessThanOrEqualTo(face.squares));
+          final n = Rules.roll(r);
+          final move = Bot.chooseMove(b, ps, current, n, r);
+          expect(move.length, lessThanOrEqualTo(n));
           // Hamle kurallara uygun olmalı.
           final sel = <int>[];
           for (final c in move) {
@@ -122,21 +122,28 @@ void main() {
     }
   });
 
-  test('tam 7 sallama iyi yüzleri sıklaştırır', () {
-    int good(bool lucky) {
+  test('kibrit 1–6 verir; tam 7 sallama büyük sayıları sıklaştırır', () {
+    (double, Set<int>) stats(bool lucky) {
       final r = Random(1);
-      var g = 0;
-      for (var i = 0; i < 5000; i++) {
-        final f = Rules.toss(r, lucky: lucky);
-        if (f != MatchFace.yatik) g++;
+      var sum = 0;
+      final seen = <int>{};
+      for (var i = 0; i < 10000; i++) {
+        final n = Rules.roll(r, lucky: lucky);
+        expect(n, inInclusiveRange(1, 6));
+        seen.add(n);
+        sum += n;
       }
-      return g;
+      return (sum / 10000, seen);
     }
 
-    final normal = good(false);
-    final lucky = good(true);
-    expect(normal, inInclusiveRange(1900, 2300)); // ~%42
-    expect(lucky, inInclusiveRange(3550, 3950)); // ~%75
+    final normal = stats(false);
+    final lucky = stats(true);
+    expect(normal.$2, {1, 2, 3, 4, 5, 6});
+    expect(normal.$1, closeTo(3.02, 0.08));
+    expect(lucky.$1, closeTo(4.19, 0.08));
+    expect(MatchFaceInfo.forNumber(1), MatchFace.yatik);
+    expect(MatchFaceInfo.forNumber(4), MatchFace.yan);
+    expect(MatchFaceInfo.forNumber(6), MatchFace.dik);
   });
 
   test('yıldız kuralı: 1.→3, 2.→2, 3.→1, sonuncu 0', () {

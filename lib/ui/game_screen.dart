@@ -1058,7 +1058,7 @@ class _TossResultState extends State<_TossResult> {
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-          '${f.label} geldi: ${f.squares} kare!',
+          '${f.label} geldi: ${widget.c.need} kare!',
           style: t.headlineSmall?.copyWith(
             color: Night.gold,
             fontWeight: FontWeight.w800,

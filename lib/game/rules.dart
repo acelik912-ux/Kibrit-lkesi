@@ -80,15 +80,21 @@ class Rules {
   /// Sallamanın sırrı: kutuyu tam bu kadar sallayan şanslı atar.
   static const int luckyShakes = 7;
 
-  /// Kibrit kutusu atışı. Dik gelmesi en nadir, yatık en sık.
-  /// [lucky]: tam [luckyShakes] kez sallandıysa iyi yüzler çok daha sık gelir.
-  static MatchFace toss(Random r, {bool lucky = false}) {
-    final v = r.nextDouble();
-    final dik = lucky ? 0.30 : 0.10;
-    final yan = lucky ? 0.75 : 0.42; // birikimli
-    if (v < dik) return MatchFace.dik;
-    if (v < yan) return MatchFace.yan;
-    return MatchFace.yatik;
+  /// 1..6 için olasılıklar (yüzde). Kutu çoğunlukla geniş yüzüne düşer,
+  /// ucunun üstünde dik durması nadirdir.
+  static const List<int> normalOdds = [22, 22, 18, 18, 10, 10]; // ort. ~3,0
+  /// Tam [luckyShakes] kez sallanınca büyük sayılar çok daha sık gelir.
+  static const List<int> luckyOdds = [8, 8, 16, 18, 25, 25]; // ort. ~4,2
+
+  /// Kibrit kutusu atışı: 1–6 arası kaç kare oynanacağı.
+  static int roll(Random r, {bool lucky = false}) {
+    final odds = lucky ? luckyOdds : normalOdds;
+    var v = r.nextInt(100);
+    for (var i = 0; i < 6; i++) {
+      v -= odds[i];
+      if (v < 0) return i + 1;
+    }
+    return 6;
   }
 
   /// Oyuncu sayısına göre defter boyutu ve başlangıç ülkeleri.
