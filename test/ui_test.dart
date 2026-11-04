@@ -37,6 +37,7 @@ void main() {
     await tester.pump();
     expect(find.text('Kibrit Ülkesi'), findsOneWidget);
     expect(find.text('Oyuna başla'), findsOneWidget);
+    expect(find.byKey(const ValueKey('nasil-oynanir')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

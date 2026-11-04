@@ -5,6 +5,7 @@ import '../game/progress.dart';
 import 'game_screen.dart';
 import 'paper.dart';
 import 'sprites.dart';
+import 'tutorial_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -163,6 +164,24 @@ class _MenuScreenState extends State<MenuScreen> {
                         elevation: 10,
                       ),
                       child: const Text('Oyuna başla'),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      key: const ValueKey('nasil-oynanir'),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (_) => const TutorialScreen()),
+                      ),
+                      icon: const Icon(Icons.play_circle_fill_rounded,
+                          size: 28),
+                      label: const Text('Nasıl oynanır? (sesli video)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Night.gold,
+                        side: const BorderSide(color: Night.gold, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        textStyle: t.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
                     const SizedBox(height: 28),
                     const _HowToPlay(),
